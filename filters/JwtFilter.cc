@@ -32,8 +32,7 @@ void JwtFilter::doFilter(const HttpRequestPtr &req,
         auto decoded = jwt::decode(token);
         auto verifier = jwt::verify()
             .allow_algorithm(jwt::algorithm::hs256{secret})
-            .with_issuer("drogon_auth_demo")
-            .with_audience("api_users");
+            .with_issuer("wechat_server");  
         verifier.verify(decoded);
 
         auto userId = decoded.get_payload_claim("user_id").as_string();

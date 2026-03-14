@@ -21,20 +21,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(${PROJECT_NAME} main.cc)
 
-# ##############################################################################
-# If you include the drogon source code locally in your project, use this method
-# to add drogon 
-# add_subdirectory(drogon) 
-# target_link_libraries(${PROJECT_NAME} PRIVATE drogon)
-#
-# and comment out the following lines
+# 查找依赖
 find_package(Drogon CONFIG REQUIRED)
 find_package(jwt-cpp REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Drogon::Drogon)
 target_link_libraries(${PROJECT_NAME} PRIVATE jwt-cpp::jwt-cpp)
-
-# ##############################################################################
+target_link_libraries(${PROJECT_NAME} PRIVATE crypt)   # 新增
 
 if (CMAKE_CXX_STANDARD LESS 17)
     message(FATAL_ERROR "c++17 or higher is required")
@@ -44,35 +37,27 @@ else ()
     message(STATUS "use c++20")
 endif ()
 
+# 收集源文件
 aux_source_directory(controllers CTL_SRC)
 aux_source_directory(filters FILTER_SRC)
 aux_source_directory(plugins PLUGIN_SRC)
 aux_source_directory(models MODEL_SRC)
+aux_source_directory(utils UTIL_SRC)          # 新增
 
 drogon_create_views(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/views
                     ${CMAKE_CURRENT_BINARY_DIR})
-# use the following line to create views with namespaces.
-# drogon_create_views(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/views
-#                     ${CMAKE_CURRENT_BINARY_DIR} TRUE)
-# use the following line to create views with namespace CHANGE_ME prefixed
-# and path namespaces.
-# drogon_create_views(${PROJECT_NAME} ${CMAKE_CURRENT_SOURCE_DIR}/views
-#                     ${CMAKE_CURRENT_BINARY_DIR} TRUE CHANGE_ME)
 
 target_include_directories(${PROJECT_NAME}
                            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                    ${CMAKE_CURRENT_SOURCE_DIR}/models)
+
 target_sources(${PROJECT_NAME}
                PRIVATE
                ${SRC_DIR}
                ${CTL_SRC}
                ${FILTER_SRC}
                ${PLUGIN_SRC}
-               ${MODEL_SRC})
-# ##############################################################################
-# uncomment the following line for dynamically loading views 
-# set_property(TARGET ${PROJECT_NAME} PROPERTY ENABLE_EXPORTS ON)
-
-# ##############################################################################
+               ${MODEL_SRC}
+               ${UTIL_SRC})                    # 新增
 
 add_subdirectory(test)

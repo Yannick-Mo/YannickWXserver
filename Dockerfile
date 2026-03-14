@@ -2,9 +2,11 @@
 FROM drogonframework/drogon:latest
 
 # 安装编译依赖 + 从源码编译安装 jwt-cpp + 生成自签名SSL证书 + 清理冗余文件
-RUN apt update && \
-    # 安装编译所需的基础工具和依赖（包含openssl用于生成证书）
-    apt install -y --no-install-recommends git cmake build-essential libssl-dev openssl && \
+RUN sed -i 's/archive.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list && \
+    sed -i 's/security.ubuntu.com/mirrors.aliyun.com/g' /etc/apt/sources.list && \
+    apt update && \
+    # 安装编译所需的基础工具和依赖（新增 libpq5 libpq-dev 解决PostgreSQL依赖）
+    apt install -y --no-install-recommends git cmake build-essential libssl-dev openssl libpq5 libpq-dev && \
     # 克隆 jwt-cpp 源码（指定版本更稳定）
     git clone --depth 1 --branch v0.7.0 https://github.com/Thalhammer/jwt-cpp.git /tmp/jwt-cpp && \
     # 编译安装 jwt-cpp
@@ -24,8 +26,9 @@ RUN apt update && \
     chown root:root /etc/ssl/drogon/* && \
     # ========== 清理冗余文件 ==========
     rm -rf /tmp/jwt-cpp && \
-    # 卸载编译/生成证书的依赖（保留运行时依赖libssl-dev）
-    apt remove -y git cmake build-essential openssl && \
+    # 卸载编译/生成证书的依赖（保留运行时依赖 libssl-dev + libpq5）
+    # 注意：只删除 libpq-dev（编译依赖），保留 libpq5（运行依赖）
+    apt remove -y git cmake build-essential openssl libpq-dev && \
     apt autoremove -y && \
     apt clean && rm -rf /var/lib/apt/lists/*
 

@@ -10,7 +10,7 @@
     "listeners": [
         {
             "address": "0.0.0.0",
-            "port": 80,
+            "port": 8080,
             "https": false
         },
         {
@@ -28,17 +28,17 @@
     ],
     "db_clients": [
         {
-            "name": "default",
-            "rdbms": "postgresql",
-            "host": "127.0.0.1",
-            "port": 5432,
-            "dbname": "test",
-            "user": "",
-            "passwd": "",
+            "name": "serverDb",
+            "rdbms": "mysql",
+            "host": "192.168.124.91",
+            "port": 3306,
+            "dbname": "yaroserverdb",
+            "user": "root",
+            "passwd": "123456",
             "is_fast": false,
-            "number_of_connections": 1,
+            "number_of_connections": 10,
             "timeout": -1.0,
-            "auto_batch": false
+            "auto_batch": true
         }
     ],
     "redis_clients": [
