@@ -22,12 +22,12 @@ class RestfulMomentLikeCtrl: public drogon::HttpController<RestfulMomentLikeCtrl
 {
   public:
     METHOD_LIST_BEGIN
-    ADD_METHOD_TO(RestfulMomentLikeCtrl::getOne,"/api/v1/momentlike/{1}",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulMomentLikeCtrl::updateOne,"/api/v1/momentlike/{1}",Put,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulMomentLikeCtrl::deleteOne,"/api/v1/momentlike/{1}",Delete,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulMomentLikeCtrl::get,"/api/v1/momentlike",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulMomentLikeCtrl::create,"/api/v1/momentlike",Post,Options,"AuthFilter");
-    //ADD_METHOD_TO(RestfulMomentLikeCtrl::update,"/api/v1/momentlike",Put,Options,"AuthFilter");
+    ADD_METHOD_TO(RestfulMomentLikeCtrl::getOne,"/api/v1/momentlike/{1}",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulMomentLikeCtrl::updateOne,"/api/v1/momentlike/{1}",Put,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulMomentLikeCtrl::deleteOne,"/api/v1/momentlike/{1}",Delete,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulMomentLikeCtrl::get,"/api/v1/momentlike",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulMomentLikeCtrl::create,"/api/v1/momentlike",Post,Options,"JwtFilter");
+    //ADD_METHOD_TO(RestfulMomentLikeCtrl::update,"/api/v1/momentlike",Put,Options,"JwtFilter");
     METHOD_LIST_END
      
     void getOne(const HttpRequestPtr &req,

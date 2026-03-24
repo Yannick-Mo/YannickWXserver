@@ -22,12 +22,12 @@ class RestfulDeviceCtrl: public drogon::HttpController<RestfulDeviceCtrl>, publi
 {
   public:
     METHOD_LIST_BEGIN
-    ADD_METHOD_TO(RestfulDeviceCtrl::getOne,"/api/v1/device/{1}",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulDeviceCtrl::updateOne,"/api/v1/device/{1}",Put,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulDeviceCtrl::deleteOne,"/api/v1/device/{1}",Delete,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulDeviceCtrl::get,"/api/v1/device",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulDeviceCtrl::create,"/api/v1/device",Post,Options,"AuthFilter");
-    //ADD_METHOD_TO(RestfulDeviceCtrl::update,"/api/v1/device",Put,Options,"AuthFilter");
+    ADD_METHOD_TO(RestfulDeviceCtrl::getOne,"/api/v1/device/{1}",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulDeviceCtrl::updateOne,"/api/v1/device/{1}",Put,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulDeviceCtrl::deleteOne,"/api/v1/device/{1}",Delete,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulDeviceCtrl::get,"/api/v1/device",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulDeviceCtrl::create,"/api/v1/device",Post,Options,"JwtFilter");
+    //ADD_METHOD_TO(RestfulDeviceCtrl::update,"/api/v1/device",Put,Options,"JwtFilter");
     METHOD_LIST_END
      
     void getOne(const HttpRequestPtr &req,

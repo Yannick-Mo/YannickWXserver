@@ -18,8 +18,13 @@ const std::string Friend::Cols::_id = "id";
 const std::string Friend::Cols::_user_id = "user_id";
 const std::string Friend::Cols::_friend_id = "friend_id";
 const std::string Friend::Cols::_remark = "remark";
+const std::string Friend::Cols::_description = "description";
 const std::string Friend::Cols::_tags = "tags";
-const std::string Friend::Cols::_is_black = "is_black";
+const std::string Friend::Cols::_phone_note = "phone_note";
+const std::string Friend::Cols::_email_note = "email_note";
+const std::string Friend::Cols::_source = "source";
+const std::string Friend::Cols::_is_starred = "is_starred";
+const std::string Friend::Cols::_is_blocked = "is_blocked";
 const std::string Friend::Cols::_status = "status";
 const std::string Friend::Cols::_created_at = "created_at";
 const std::string Friend::Cols::_updated_at = "updated_at";
@@ -32,8 +37,13 @@ const std::vector<typename Friend::MetaData> Friend::metaData_={
 {"user_id","int64_t","bigint",8,0,0,1},
 {"friend_id","int64_t","bigint",8,0,0,1},
 {"remark","std::string","varchar(100)",100,0,0,0},
+{"description","std::string","varchar(500)",500,0,0,0},
 {"tags","std::string","json",0,0,0,0},
-{"is_black","int8_t","tinyint",1,0,0,0},
+{"phone_note","std::string","varchar(20)",20,0,0,0},
+{"email_note","std::string","varchar(100)",100,0,0,0},
+{"source","std::string","varchar(50)",50,0,0,0},
+{"is_starred","int8_t","tinyint",1,0,0,0},
+{"is_blocked","int8_t","tinyint",1,0,0,0},
 {"status","int8_t","tinyint",1,0,0,0},
 {"created_at","::trantor::Date","datetime",0,0,0,0},
 {"updated_at","::trantor::Date","datetime",0,0,0,0}
@@ -63,13 +73,33 @@ Friend::Friend(const Row &r, const ssize_t indexOffset) noexcept
         {
             remark_=std::make_shared<std::string>(r["remark"].as<std::string>());
         }
+        if(!r["description"].isNull())
+        {
+            description_=std::make_shared<std::string>(r["description"].as<std::string>());
+        }
         if(!r["tags"].isNull())
         {
             tags_=std::make_shared<std::string>(r["tags"].as<std::string>());
         }
-        if(!r["is_black"].isNull())
+        if(!r["phone_note"].isNull())
         {
-            isBlack_=std::make_shared<int8_t>(r["is_black"].as<int8_t>());
+            phoneNote_=std::make_shared<std::string>(r["phone_note"].as<std::string>());
+        }
+        if(!r["email_note"].isNull())
+        {
+            emailNote_=std::make_shared<std::string>(r["email_note"].as<std::string>());
+        }
+        if(!r["source"].isNull())
+        {
+            source_=std::make_shared<std::string>(r["source"].as<std::string>());
+        }
+        if(!r["is_starred"].isNull())
+        {
+            isStarred_=std::make_shared<int8_t>(r["is_starred"].as<int8_t>());
+        }
+        if(!r["is_blocked"].isNull())
+        {
+            isBlocked_=std::make_shared<int8_t>(r["is_blocked"].as<int8_t>());
         }
         if(!r["status"].isNull())
         {
@@ -123,7 +153,7 @@ Friend::Friend(const Row &r, const ssize_t indexOffset) noexcept
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 9 > r.size())
+        if(offset + 14 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -152,19 +182,44 @@ Friend::Friend(const Row &r, const ssize_t indexOffset) noexcept
         index = offset + 4;
         if(!r[index].isNull())
         {
-            tags_=std::make_shared<std::string>(r[index].as<std::string>());
+            description_=std::make_shared<std::string>(r[index].as<std::string>());
         }
         index = offset + 5;
         if(!r[index].isNull())
         {
-            isBlack_=std::make_shared<int8_t>(r[index].as<int8_t>());
+            tags_=std::make_shared<std::string>(r[index].as<std::string>());
         }
         index = offset + 6;
         if(!r[index].isNull())
         {
-            status_=std::make_shared<int8_t>(r[index].as<int8_t>());
+            phoneNote_=std::make_shared<std::string>(r[index].as<std::string>());
         }
         index = offset + 7;
+        if(!r[index].isNull())
+        {
+            emailNote_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
+        index = offset + 8;
+        if(!r[index].isNull())
+        {
+            source_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
+        index = offset + 9;
+        if(!r[index].isNull())
+        {
+            isStarred_=std::make_shared<int8_t>(r[index].as<int8_t>());
+        }
+        index = offset + 10;
+        if(!r[index].isNull())
+        {
+            isBlocked_=std::make_shared<int8_t>(r[index].as<int8_t>());
+        }
+        index = offset + 11;
+        if(!r[index].isNull())
+        {
+            status_=std::make_shared<int8_t>(r[index].as<int8_t>());
+        }
+        index = offset + 12;
         if(!r[index].isNull())
         {
             auto timeStr = r[index].as<std::string>();
@@ -187,7 +242,7 @@ Friend::Friend(const Row &r, const ssize_t indexOffset) noexcept
                 createdAt_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
-        index = offset + 8;
+        index = offset + 13;
         if(!r[index].isNull())
         {
             auto timeStr = r[index].as<std::string>();
@@ -216,7 +271,7 @@ Friend::Friend(const Row &r, const ssize_t indexOffset) noexcept
 
 Friend::Friend(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 9)
+    if(pMasqueradingVector.size() != 14)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -258,7 +313,7 @@ Friend::Friend(const Json::Value &pJson, const std::vector<std::string> &pMasque
         dirtyFlag_[4] = true;
         if(!pJson[pMasqueradingVector[4]].isNull())
         {
-            tags_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
+            description_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
         }
     }
     if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
@@ -266,7 +321,7 @@ Friend::Friend(const Json::Value &pJson, const std::vector<std::string> &pMasque
         dirtyFlag_[5] = true;
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
-            isBlack_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[5]].asInt64());
+            tags_=std::make_shared<std::string>(pJson[pMasqueradingVector[5]].asString());
         }
     }
     if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
@@ -274,7 +329,7 @@ Friend::Friend(const Json::Value &pJson, const std::vector<std::string> &pMasque
         dirtyFlag_[6] = true;
         if(!pJson[pMasqueradingVector[6]].isNull())
         {
-            status_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[6]].asInt64());
+            phoneNote_=std::make_shared<std::string>(pJson[pMasqueradingVector[6]].asString());
         }
     }
     if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
@@ -282,7 +337,47 @@ Friend::Friend(const Json::Value &pJson, const std::vector<std::string> &pMasque
         dirtyFlag_[7] = true;
         if(!pJson[pMasqueradingVector[7]].isNull())
         {
-            auto timeStr = pJson[pMasqueradingVector[7]].asString();
+            emailNote_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            source_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
+        }
+    }
+    if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson[pMasqueradingVector[9]].isNull())
+        {
+            isStarred_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[9]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[10].empty() && pJson.isMember(pMasqueradingVector[10]))
+    {
+        dirtyFlag_[10] = true;
+        if(!pJson[pMasqueradingVector[10]].isNull())
+        {
+            isBlocked_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[10]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[11].empty() && pJson.isMember(pMasqueradingVector[11]))
+    {
+        dirtyFlag_[11] = true;
+        if(!pJson[pMasqueradingVector[11]].isNull())
+        {
+            status_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[11]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[12].empty() && pJson.isMember(pMasqueradingVector[12]))
+    {
+        dirtyFlag_[12] = true;
+        if(!pJson[pMasqueradingVector[12]].isNull())
+        {
+            auto timeStr = pJson[pMasqueradingVector[12]].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -303,12 +398,12 @@ Friend::Friend(const Json::Value &pJson, const std::vector<std::string> &pMasque
             }
         }
     }
-    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    if(!pMasqueradingVector[13].empty() && pJson.isMember(pMasqueradingVector[13]))
     {
-        dirtyFlag_[8] = true;
-        if(!pJson[pMasqueradingVector[8]].isNull())
+        dirtyFlag_[13] = true;
+        if(!pJson[pMasqueradingVector[13]].isNull())
         {
-            auto timeStr = pJson[pMasqueradingVector[8]].asString();
+            auto timeStr = pJson[pMasqueradingVector[13]].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -365,25 +460,65 @@ Friend::Friend(const Json::Value &pJson) noexcept(false)
             remark_=std::make_shared<std::string>(pJson["remark"].asString());
         }
     }
-    if(pJson.isMember("tags"))
+    if(pJson.isMember("description"))
     {
         dirtyFlag_[4]=true;
+        if(!pJson["description"].isNull())
+        {
+            description_=std::make_shared<std::string>(pJson["description"].asString());
+        }
+    }
+    if(pJson.isMember("tags"))
+    {
+        dirtyFlag_[5]=true;
         if(!pJson["tags"].isNull())
         {
             tags_=std::make_shared<std::string>(pJson["tags"].asString());
         }
     }
-    if(pJson.isMember("is_black"))
+    if(pJson.isMember("phone_note"))
     {
-        dirtyFlag_[5]=true;
-        if(!pJson["is_black"].isNull())
+        dirtyFlag_[6]=true;
+        if(!pJson["phone_note"].isNull())
         {
-            isBlack_=std::make_shared<int8_t>((int8_t)pJson["is_black"].asInt64());
+            phoneNote_=std::make_shared<std::string>(pJson["phone_note"].asString());
+        }
+    }
+    if(pJson.isMember("email_note"))
+    {
+        dirtyFlag_[7]=true;
+        if(!pJson["email_note"].isNull())
+        {
+            emailNote_=std::make_shared<std::string>(pJson["email_note"].asString());
+        }
+    }
+    if(pJson.isMember("source"))
+    {
+        dirtyFlag_[8]=true;
+        if(!pJson["source"].isNull())
+        {
+            source_=std::make_shared<std::string>(pJson["source"].asString());
+        }
+    }
+    if(pJson.isMember("is_starred"))
+    {
+        dirtyFlag_[9]=true;
+        if(!pJson["is_starred"].isNull())
+        {
+            isStarred_=std::make_shared<int8_t>((int8_t)pJson["is_starred"].asInt64());
+        }
+    }
+    if(pJson.isMember("is_blocked"))
+    {
+        dirtyFlag_[10]=true;
+        if(!pJson["is_blocked"].isNull())
+        {
+            isBlocked_=std::make_shared<int8_t>((int8_t)pJson["is_blocked"].asInt64());
         }
     }
     if(pJson.isMember("status"))
     {
-        dirtyFlag_[6]=true;
+        dirtyFlag_[11]=true;
         if(!pJson["status"].isNull())
         {
             status_=std::make_shared<int8_t>((int8_t)pJson["status"].asInt64());
@@ -391,7 +526,7 @@ Friend::Friend(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("created_at"))
     {
-        dirtyFlag_[7]=true;
+        dirtyFlag_[12]=true;
         if(!pJson["created_at"].isNull())
         {
             auto timeStr = pJson["created_at"].asString();
@@ -417,7 +552,7 @@ Friend::Friend(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("updated_at"))
     {
-        dirtyFlag_[8]=true;
+        dirtyFlag_[13]=true;
         if(!pJson["updated_at"].isNull())
         {
             auto timeStr = pJson["updated_at"].asString();
@@ -446,7 +581,7 @@ Friend::Friend(const Json::Value &pJson) noexcept(false)
 void Friend::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 9)
+    if(pMasqueradingVector.size() != 14)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -487,7 +622,7 @@ void Friend::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[4] = true;
         if(!pJson[pMasqueradingVector[4]].isNull())
         {
-            tags_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
+            description_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
         }
     }
     if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
@@ -495,7 +630,7 @@ void Friend::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[5] = true;
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
-            isBlack_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[5]].asInt64());
+            tags_=std::make_shared<std::string>(pJson[pMasqueradingVector[5]].asString());
         }
     }
     if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
@@ -503,7 +638,7 @@ void Friend::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[6] = true;
         if(!pJson[pMasqueradingVector[6]].isNull())
         {
-            status_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[6]].asInt64());
+            phoneNote_=std::make_shared<std::string>(pJson[pMasqueradingVector[6]].asString());
         }
     }
     if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
@@ -511,7 +646,47 @@ void Friend::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[7] = true;
         if(!pJson[pMasqueradingVector[7]].isNull())
         {
-            auto timeStr = pJson[pMasqueradingVector[7]].asString();
+            emailNote_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            source_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
+        }
+    }
+    if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson[pMasqueradingVector[9]].isNull())
+        {
+            isStarred_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[9]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[10].empty() && pJson.isMember(pMasqueradingVector[10]))
+    {
+        dirtyFlag_[10] = true;
+        if(!pJson[pMasqueradingVector[10]].isNull())
+        {
+            isBlocked_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[10]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[11].empty() && pJson.isMember(pMasqueradingVector[11]))
+    {
+        dirtyFlag_[11] = true;
+        if(!pJson[pMasqueradingVector[11]].isNull())
+        {
+            status_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[11]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[12].empty() && pJson.isMember(pMasqueradingVector[12]))
+    {
+        dirtyFlag_[12] = true;
+        if(!pJson[pMasqueradingVector[12]].isNull())
+        {
+            auto timeStr = pJson[pMasqueradingVector[12]].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -532,12 +707,12 @@ void Friend::updateByMasqueradedJson(const Json::Value &pJson,
             }
         }
     }
-    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    if(!pMasqueradingVector[13].empty() && pJson.isMember(pMasqueradingVector[13]))
     {
-        dirtyFlag_[8] = true;
-        if(!pJson[pMasqueradingVector[8]].isNull())
+        dirtyFlag_[13] = true;
+        if(!pJson[pMasqueradingVector[13]].isNull())
         {
-            auto timeStr = pJson[pMasqueradingVector[8]].asString();
+            auto timeStr = pJson[pMasqueradingVector[13]].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -593,25 +768,65 @@ void Friend::updateByJson(const Json::Value &pJson) noexcept(false)
             remark_=std::make_shared<std::string>(pJson["remark"].asString());
         }
     }
-    if(pJson.isMember("tags"))
+    if(pJson.isMember("description"))
     {
         dirtyFlag_[4] = true;
+        if(!pJson["description"].isNull())
+        {
+            description_=std::make_shared<std::string>(pJson["description"].asString());
+        }
+    }
+    if(pJson.isMember("tags"))
+    {
+        dirtyFlag_[5] = true;
         if(!pJson["tags"].isNull())
         {
             tags_=std::make_shared<std::string>(pJson["tags"].asString());
         }
     }
-    if(pJson.isMember("is_black"))
+    if(pJson.isMember("phone_note"))
     {
-        dirtyFlag_[5] = true;
-        if(!pJson["is_black"].isNull())
+        dirtyFlag_[6] = true;
+        if(!pJson["phone_note"].isNull())
         {
-            isBlack_=std::make_shared<int8_t>((int8_t)pJson["is_black"].asInt64());
+            phoneNote_=std::make_shared<std::string>(pJson["phone_note"].asString());
+        }
+    }
+    if(pJson.isMember("email_note"))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson["email_note"].isNull())
+        {
+            emailNote_=std::make_shared<std::string>(pJson["email_note"].asString());
+        }
+    }
+    if(pJson.isMember("source"))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson["source"].isNull())
+        {
+            source_=std::make_shared<std::string>(pJson["source"].asString());
+        }
+    }
+    if(pJson.isMember("is_starred"))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson["is_starred"].isNull())
+        {
+            isStarred_=std::make_shared<int8_t>((int8_t)pJson["is_starred"].asInt64());
+        }
+    }
+    if(pJson.isMember("is_blocked"))
+    {
+        dirtyFlag_[10] = true;
+        if(!pJson["is_blocked"].isNull())
+        {
+            isBlocked_=std::make_shared<int8_t>((int8_t)pJson["is_blocked"].asInt64());
         }
     }
     if(pJson.isMember("status"))
     {
-        dirtyFlag_[6] = true;
+        dirtyFlag_[11] = true;
         if(!pJson["status"].isNull())
         {
             status_=std::make_shared<int8_t>((int8_t)pJson["status"].asInt64());
@@ -619,7 +834,7 @@ void Friend::updateByJson(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("created_at"))
     {
-        dirtyFlag_[7] = true;
+        dirtyFlag_[12] = true;
         if(!pJson["created_at"].isNull())
         {
             auto timeStr = pJson["created_at"].asString();
@@ -645,7 +860,7 @@ void Friend::updateByJson(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("updated_at"))
     {
-        dirtyFlag_[8] = true;
+        dirtyFlag_[13] = true;
         if(!pJson["updated_at"].isNull())
         {
             auto timeStr = pJson["updated_at"].asString();
@@ -754,6 +969,33 @@ void Friend::setRemarkToNull() noexcept
     dirtyFlag_[3] = true;
 }
 
+const std::string &Friend::getValueOfDescription() const noexcept
+{
+    static const std::string defaultValue = std::string();
+    if(description_)
+        return *description_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Friend::getDescription() const noexcept
+{
+    return description_;
+}
+void Friend::setDescription(const std::string &pDescription) noexcept
+{
+    description_ = std::make_shared<std::string>(pDescription);
+    dirtyFlag_[4] = true;
+}
+void Friend::setDescription(std::string &&pDescription) noexcept
+{
+    description_ = std::make_shared<std::string>(std::move(pDescription));
+    dirtyFlag_[4] = true;
+}
+void Friend::setDescriptionToNull() noexcept
+{
+    description_.reset();
+    dirtyFlag_[4] = true;
+}
+
 const std::string &Friend::getValueOfTags() const noexcept
 {
     static const std::string defaultValue = std::string();
@@ -768,39 +1010,142 @@ const std::shared_ptr<std::string> &Friend::getTags() const noexcept
 void Friend::setTags(const std::string &pTags) noexcept
 {
     tags_ = std::make_shared<std::string>(pTags);
-    dirtyFlag_[4] = true;
+    dirtyFlag_[5] = true;
 }
 void Friend::setTags(std::string &&pTags) noexcept
 {
     tags_ = std::make_shared<std::string>(std::move(pTags));
-    dirtyFlag_[4] = true;
+    dirtyFlag_[5] = true;
 }
 void Friend::setTagsToNull() noexcept
 {
     tags_.reset();
-    dirtyFlag_[4] = true;
+    dirtyFlag_[5] = true;
 }
 
-const int8_t &Friend::getValueOfIsBlack() const noexcept
+const std::string &Friend::getValueOfPhoneNote() const noexcept
 {
-    static const int8_t defaultValue = int8_t();
-    if(isBlack_)
-        return *isBlack_;
+    static const std::string defaultValue = std::string();
+    if(phoneNote_)
+        return *phoneNote_;
     return defaultValue;
 }
-const std::shared_ptr<int8_t> &Friend::getIsBlack() const noexcept
+const std::shared_ptr<std::string> &Friend::getPhoneNote() const noexcept
 {
-    return isBlack_;
+    return phoneNote_;
 }
-void Friend::setIsBlack(const int8_t &pIsBlack) noexcept
+void Friend::setPhoneNote(const std::string &pPhoneNote) noexcept
 {
-    isBlack_ = std::make_shared<int8_t>(pIsBlack);
-    dirtyFlag_[5] = true;
+    phoneNote_ = std::make_shared<std::string>(pPhoneNote);
+    dirtyFlag_[6] = true;
 }
-void Friend::setIsBlackToNull() noexcept
+void Friend::setPhoneNote(std::string &&pPhoneNote) noexcept
 {
-    isBlack_.reset();
-    dirtyFlag_[5] = true;
+    phoneNote_ = std::make_shared<std::string>(std::move(pPhoneNote));
+    dirtyFlag_[6] = true;
+}
+void Friend::setPhoneNoteToNull() noexcept
+{
+    phoneNote_.reset();
+    dirtyFlag_[6] = true;
+}
+
+const std::string &Friend::getValueOfEmailNote() const noexcept
+{
+    static const std::string defaultValue = std::string();
+    if(emailNote_)
+        return *emailNote_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Friend::getEmailNote() const noexcept
+{
+    return emailNote_;
+}
+void Friend::setEmailNote(const std::string &pEmailNote) noexcept
+{
+    emailNote_ = std::make_shared<std::string>(pEmailNote);
+    dirtyFlag_[7] = true;
+}
+void Friend::setEmailNote(std::string &&pEmailNote) noexcept
+{
+    emailNote_ = std::make_shared<std::string>(std::move(pEmailNote));
+    dirtyFlag_[7] = true;
+}
+void Friend::setEmailNoteToNull() noexcept
+{
+    emailNote_.reset();
+    dirtyFlag_[7] = true;
+}
+
+const std::string &Friend::getValueOfSource() const noexcept
+{
+    static const std::string defaultValue = std::string();
+    if(source_)
+        return *source_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Friend::getSource() const noexcept
+{
+    return source_;
+}
+void Friend::setSource(const std::string &pSource) noexcept
+{
+    source_ = std::make_shared<std::string>(pSource);
+    dirtyFlag_[8] = true;
+}
+void Friend::setSource(std::string &&pSource) noexcept
+{
+    source_ = std::make_shared<std::string>(std::move(pSource));
+    dirtyFlag_[8] = true;
+}
+void Friend::setSourceToNull() noexcept
+{
+    source_.reset();
+    dirtyFlag_[8] = true;
+}
+
+const int8_t &Friend::getValueOfIsStarred() const noexcept
+{
+    static const int8_t defaultValue = int8_t();
+    if(isStarred_)
+        return *isStarred_;
+    return defaultValue;
+}
+const std::shared_ptr<int8_t> &Friend::getIsStarred() const noexcept
+{
+    return isStarred_;
+}
+void Friend::setIsStarred(const int8_t &pIsStarred) noexcept
+{
+    isStarred_ = std::make_shared<int8_t>(pIsStarred);
+    dirtyFlag_[9] = true;
+}
+void Friend::setIsStarredToNull() noexcept
+{
+    isStarred_.reset();
+    dirtyFlag_[9] = true;
+}
+
+const int8_t &Friend::getValueOfIsBlocked() const noexcept
+{
+    static const int8_t defaultValue = int8_t();
+    if(isBlocked_)
+        return *isBlocked_;
+    return defaultValue;
+}
+const std::shared_ptr<int8_t> &Friend::getIsBlocked() const noexcept
+{
+    return isBlocked_;
+}
+void Friend::setIsBlocked(const int8_t &pIsBlocked) noexcept
+{
+    isBlocked_ = std::make_shared<int8_t>(pIsBlocked);
+    dirtyFlag_[10] = true;
+}
+void Friend::setIsBlockedToNull() noexcept
+{
+    isBlocked_.reset();
+    dirtyFlag_[10] = true;
 }
 
 const int8_t &Friend::getValueOfStatus() const noexcept
@@ -817,12 +1162,12 @@ const std::shared_ptr<int8_t> &Friend::getStatus() const noexcept
 void Friend::setStatus(const int8_t &pStatus) noexcept
 {
     status_ = std::make_shared<int8_t>(pStatus);
-    dirtyFlag_[6] = true;
+    dirtyFlag_[11] = true;
 }
 void Friend::setStatusToNull() noexcept
 {
     status_.reset();
-    dirtyFlag_[6] = true;
+    dirtyFlag_[11] = true;
 }
 
 const ::trantor::Date &Friend::getValueOfCreatedAt() const noexcept
@@ -839,12 +1184,12 @@ const std::shared_ptr<::trantor::Date> &Friend::getCreatedAt() const noexcept
 void Friend::setCreatedAt(const ::trantor::Date &pCreatedAt) noexcept
 {
     createdAt_ = std::make_shared<::trantor::Date>(pCreatedAt);
-    dirtyFlag_[7] = true;
+    dirtyFlag_[12] = true;
 }
 void Friend::setCreatedAtToNull() noexcept
 {
     createdAt_.reset();
-    dirtyFlag_[7] = true;
+    dirtyFlag_[12] = true;
 }
 
 const ::trantor::Date &Friend::getValueOfUpdatedAt() const noexcept
@@ -861,12 +1206,12 @@ const std::shared_ptr<::trantor::Date> &Friend::getUpdatedAt() const noexcept
 void Friend::setUpdatedAt(const ::trantor::Date &pUpdatedAt) noexcept
 {
     updatedAt_ = std::make_shared<::trantor::Date>(pUpdatedAt);
-    dirtyFlag_[8] = true;
+    dirtyFlag_[13] = true;
 }
 void Friend::setUpdatedAtToNull() noexcept
 {
     updatedAt_.reset();
-    dirtyFlag_[8] = true;
+    dirtyFlag_[13] = true;
 }
 
 void Friend::updateId(const uint64_t id)
@@ -880,8 +1225,13 @@ const std::vector<std::string> &Friend::insertColumns() noexcept
         "user_id",
         "friend_id",
         "remark",
+        "description",
         "tags",
-        "is_black",
+        "phone_note",
+        "email_note",
+        "source",
+        "is_starred",
+        "is_blocked",
         "status",
         "created_at",
         "updated_at"
@@ -926,6 +1276,17 @@ void Friend::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[4])
     {
+        if(getDescription())
+        {
+            binder << getValueOfDescription();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[5])
+    {
         if(getTags())
         {
             binder << getValueOfTags();
@@ -935,18 +1296,62 @@ void Friend::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[5])
+    if(dirtyFlag_[6])
     {
-        if(getIsBlack())
+        if(getPhoneNote())
         {
-            binder << getValueOfIsBlack();
+            binder << getValueOfPhoneNote();
         }
         else
         {
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[6])
+    if(dirtyFlag_[7])
+    {
+        if(getEmailNote())
+        {
+            binder << getValueOfEmailNote();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getSource())
+        {
+            binder << getValueOfSource();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[9])
+    {
+        if(getIsStarred())
+        {
+            binder << getValueOfIsStarred();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[10])
+    {
+        if(getIsBlocked())
+        {
+            binder << getValueOfIsBlocked();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[11])
     {
         if(getStatus())
         {
@@ -957,7 +1362,7 @@ void Friend::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[7])
+    if(dirtyFlag_[12])
     {
         if(getCreatedAt())
         {
@@ -968,7 +1373,7 @@ void Friend::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[8])
+    if(dirtyFlag_[13])
     {
         if(getUpdatedAt())
         {
@@ -1016,6 +1421,26 @@ const std::vector<std::string> Friend::updateColumns() const
     {
         ret.push_back(getColumnName(8));
     }
+    if(dirtyFlag_[9])
+    {
+        ret.push_back(getColumnName(9));
+    }
+    if(dirtyFlag_[10])
+    {
+        ret.push_back(getColumnName(10));
+    }
+    if(dirtyFlag_[11])
+    {
+        ret.push_back(getColumnName(11));
+    }
+    if(dirtyFlag_[12])
+    {
+        ret.push_back(getColumnName(12));
+    }
+    if(dirtyFlag_[13])
+    {
+        ret.push_back(getColumnName(13));
+    }
     return ret;
 }
 
@@ -1056,6 +1481,17 @@ void Friend::updateArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[4])
     {
+        if(getDescription())
+        {
+            binder << getValueOfDescription();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[5])
+    {
         if(getTags())
         {
             binder << getValueOfTags();
@@ -1065,18 +1501,62 @@ void Friend::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[5])
+    if(dirtyFlag_[6])
     {
-        if(getIsBlack())
+        if(getPhoneNote())
         {
-            binder << getValueOfIsBlack();
+            binder << getValueOfPhoneNote();
         }
         else
         {
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[6])
+    if(dirtyFlag_[7])
+    {
+        if(getEmailNote())
+        {
+            binder << getValueOfEmailNote();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getSource())
+        {
+            binder << getValueOfSource();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[9])
+    {
+        if(getIsStarred())
+        {
+            binder << getValueOfIsStarred();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[10])
+    {
+        if(getIsBlocked())
+        {
+            binder << getValueOfIsBlocked();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[11])
     {
         if(getStatus())
         {
@@ -1087,7 +1567,7 @@ void Friend::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[7])
+    if(dirtyFlag_[12])
     {
         if(getCreatedAt())
         {
@@ -1098,7 +1578,7 @@ void Friend::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[8])
+    if(dirtyFlag_[13])
     {
         if(getUpdatedAt())
         {
@@ -1145,6 +1625,14 @@ Json::Value Friend::toJson() const
     {
         ret["remark"]=Json::Value();
     }
+    if(getDescription())
+    {
+        ret["description"]=getValueOfDescription();
+    }
+    else
+    {
+        ret["description"]=Json::Value();
+    }
     if(getTags())
     {
         ret["tags"]=getValueOfTags();
@@ -1153,13 +1641,45 @@ Json::Value Friend::toJson() const
     {
         ret["tags"]=Json::Value();
     }
-    if(getIsBlack())
+    if(getPhoneNote())
     {
-        ret["is_black"]=getValueOfIsBlack();
+        ret["phone_note"]=getValueOfPhoneNote();
     }
     else
     {
-        ret["is_black"]=Json::Value();
+        ret["phone_note"]=Json::Value();
+    }
+    if(getEmailNote())
+    {
+        ret["email_note"]=getValueOfEmailNote();
+    }
+    else
+    {
+        ret["email_note"]=Json::Value();
+    }
+    if(getSource())
+    {
+        ret["source"]=getValueOfSource();
+    }
+    else
+    {
+        ret["source"]=Json::Value();
+    }
+    if(getIsStarred())
+    {
+        ret["is_starred"]=getValueOfIsStarred();
+    }
+    else
+    {
+        ret["is_starred"]=Json::Value();
+    }
+    if(getIsBlocked())
+    {
+        ret["is_blocked"]=getValueOfIsBlocked();
+    }
+    else
+    {
+        ret["is_blocked"]=Json::Value();
     }
     if(getStatus())
     {
@@ -1197,7 +1717,7 @@ Json::Value Friend::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 9)
+    if(pMasqueradingVector.size() == 14)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -1245,9 +1765,9 @@ Json::Value Friend::toMasqueradedJson(
         }
         if(!pMasqueradingVector[4].empty())
         {
-            if(getTags())
+            if(getDescription())
             {
-                ret[pMasqueradingVector[4]]=getValueOfTags();
+                ret[pMasqueradingVector[4]]=getValueOfDescription();
             }
             else
             {
@@ -1256,9 +1776,9 @@ Json::Value Friend::toMasqueradedJson(
         }
         if(!pMasqueradingVector[5].empty())
         {
-            if(getIsBlack())
+            if(getTags())
             {
-                ret[pMasqueradingVector[5]]=getValueOfIsBlack();
+                ret[pMasqueradingVector[5]]=getValueOfTags();
             }
             else
             {
@@ -1267,9 +1787,9 @@ Json::Value Friend::toMasqueradedJson(
         }
         if(!pMasqueradingVector[6].empty())
         {
-            if(getStatus())
+            if(getPhoneNote())
             {
-                ret[pMasqueradingVector[6]]=getValueOfStatus();
+                ret[pMasqueradingVector[6]]=getValueOfPhoneNote();
             }
             else
             {
@@ -1278,9 +1798,9 @@ Json::Value Friend::toMasqueradedJson(
         }
         if(!pMasqueradingVector[7].empty())
         {
-            if(getCreatedAt())
+            if(getEmailNote())
             {
-                ret[pMasqueradingVector[7]]=getCreatedAt()->toDbStringLocal();
+                ret[pMasqueradingVector[7]]=getValueOfEmailNote();
             }
             else
             {
@@ -1289,13 +1809,68 @@ Json::Value Friend::toMasqueradedJson(
         }
         if(!pMasqueradingVector[8].empty())
         {
-            if(getUpdatedAt())
+            if(getSource())
             {
-                ret[pMasqueradingVector[8]]=getUpdatedAt()->toDbStringLocal();
+                ret[pMasqueradingVector[8]]=getValueOfSource();
             }
             else
             {
                 ret[pMasqueradingVector[8]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[9].empty())
+        {
+            if(getIsStarred())
+            {
+                ret[pMasqueradingVector[9]]=getValueOfIsStarred();
+            }
+            else
+            {
+                ret[pMasqueradingVector[9]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[10].empty())
+        {
+            if(getIsBlocked())
+            {
+                ret[pMasqueradingVector[10]]=getValueOfIsBlocked();
+            }
+            else
+            {
+                ret[pMasqueradingVector[10]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[11].empty())
+        {
+            if(getStatus())
+            {
+                ret[pMasqueradingVector[11]]=getValueOfStatus();
+            }
+            else
+            {
+                ret[pMasqueradingVector[11]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[12].empty())
+        {
+            if(getCreatedAt())
+            {
+                ret[pMasqueradingVector[12]]=getCreatedAt()->toDbStringLocal();
+            }
+            else
+            {
+                ret[pMasqueradingVector[12]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[13].empty())
+        {
+            if(getUpdatedAt())
+            {
+                ret[pMasqueradingVector[13]]=getUpdatedAt()->toDbStringLocal();
+            }
+            else
+            {
+                ret[pMasqueradingVector[13]]=Json::Value();
             }
         }
         return ret;
@@ -1333,6 +1908,14 @@ Json::Value Friend::toMasqueradedJson(
     {
         ret["remark"]=Json::Value();
     }
+    if(getDescription())
+    {
+        ret["description"]=getValueOfDescription();
+    }
+    else
+    {
+        ret["description"]=Json::Value();
+    }
     if(getTags())
     {
         ret["tags"]=getValueOfTags();
@@ -1341,13 +1924,45 @@ Json::Value Friend::toMasqueradedJson(
     {
         ret["tags"]=Json::Value();
     }
-    if(getIsBlack())
+    if(getPhoneNote())
     {
-        ret["is_black"]=getValueOfIsBlack();
+        ret["phone_note"]=getValueOfPhoneNote();
     }
     else
     {
-        ret["is_black"]=Json::Value();
+        ret["phone_note"]=Json::Value();
+    }
+    if(getEmailNote())
+    {
+        ret["email_note"]=getValueOfEmailNote();
+    }
+    else
+    {
+        ret["email_note"]=Json::Value();
+    }
+    if(getSource())
+    {
+        ret["source"]=getValueOfSource();
+    }
+    else
+    {
+        ret["source"]=Json::Value();
+    }
+    if(getIsStarred())
+    {
+        ret["is_starred"]=getValueOfIsStarred();
+    }
+    else
+    {
+        ret["is_starred"]=Json::Value();
+    }
+    if(getIsBlocked())
+    {
+        ret["is_blocked"]=getValueOfIsBlocked();
+    }
+    else
+    {
+        ret["is_blocked"]=Json::Value();
     }
     if(getStatus())
     {
@@ -1408,29 +2023,54 @@ bool Friend::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(3, "remark", pJson["remark"], err, true))
             return false;
     }
-    if(pJson.isMember("tags"))
+    if(pJson.isMember("description"))
     {
-        if(!validJsonOfField(4, "tags", pJson["tags"], err, true))
+        if(!validJsonOfField(4, "description", pJson["description"], err, true))
             return false;
     }
-    if(pJson.isMember("is_black"))
+    if(pJson.isMember("tags"))
     {
-        if(!validJsonOfField(5, "is_black", pJson["is_black"], err, true))
+        if(!validJsonOfField(5, "tags", pJson["tags"], err, true))
+            return false;
+    }
+    if(pJson.isMember("phone_note"))
+    {
+        if(!validJsonOfField(6, "phone_note", pJson["phone_note"], err, true))
+            return false;
+    }
+    if(pJson.isMember("email_note"))
+    {
+        if(!validJsonOfField(7, "email_note", pJson["email_note"], err, true))
+            return false;
+    }
+    if(pJson.isMember("source"))
+    {
+        if(!validJsonOfField(8, "source", pJson["source"], err, true))
+            return false;
+    }
+    if(pJson.isMember("is_starred"))
+    {
+        if(!validJsonOfField(9, "is_starred", pJson["is_starred"], err, true))
+            return false;
+    }
+    if(pJson.isMember("is_blocked"))
+    {
+        if(!validJsonOfField(10, "is_blocked", pJson["is_blocked"], err, true))
             return false;
     }
     if(pJson.isMember("status"))
     {
-        if(!validJsonOfField(6, "status", pJson["status"], err, true))
+        if(!validJsonOfField(11, "status", pJson["status"], err, true))
             return false;
     }
     if(pJson.isMember("created_at"))
     {
-        if(!validJsonOfField(7, "created_at", pJson["created_at"], err, true))
+        if(!validJsonOfField(12, "created_at", pJson["created_at"], err, true))
             return false;
     }
     if(pJson.isMember("updated_at"))
     {
-        if(!validJsonOfField(8, "updated_at", pJson["updated_at"], err, true))
+        if(!validJsonOfField(13, "updated_at", pJson["updated_at"], err, true))
             return false;
     }
     return true;
@@ -1439,7 +2079,7 @@ bool Friend::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                 const std::vector<std::string> &pMasqueradingVector,
                                                 std::string &err)
 {
-    if(pMasqueradingVector.size() != 9)
+    if(pMasqueradingVector.size() != 14)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1527,6 +2167,46 @@ bool Friend::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                   return false;
           }
       }
+      if(!pMasqueradingVector[9].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[9]))
+          {
+              if(!validJsonOfField(9, pMasqueradingVector[9], pJson[pMasqueradingVector[9]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[10].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[10]))
+          {
+              if(!validJsonOfField(10, pMasqueradingVector[10], pJson[pMasqueradingVector[10]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[11].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[11]))
+          {
+              if(!validJsonOfField(11, pMasqueradingVector[11], pJson[pMasqueradingVector[11]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[12].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[12]))
+          {
+              if(!validJsonOfField(12, pMasqueradingVector[12], pJson[pMasqueradingVector[12]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[13].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[13]))
+          {
+              if(!validJsonOfField(13, pMasqueradingVector[13], pJson[pMasqueradingVector[13]], err, true))
+                  return false;
+          }
+      }
     }
     catch(const Json::LogicError &e)
     {
@@ -1562,29 +2242,54 @@ bool Friend::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(3, "remark", pJson["remark"], err, false))
             return false;
     }
-    if(pJson.isMember("tags"))
+    if(pJson.isMember("description"))
     {
-        if(!validJsonOfField(4, "tags", pJson["tags"], err, false))
+        if(!validJsonOfField(4, "description", pJson["description"], err, false))
             return false;
     }
-    if(pJson.isMember("is_black"))
+    if(pJson.isMember("tags"))
     {
-        if(!validJsonOfField(5, "is_black", pJson["is_black"], err, false))
+        if(!validJsonOfField(5, "tags", pJson["tags"], err, false))
+            return false;
+    }
+    if(pJson.isMember("phone_note"))
+    {
+        if(!validJsonOfField(6, "phone_note", pJson["phone_note"], err, false))
+            return false;
+    }
+    if(pJson.isMember("email_note"))
+    {
+        if(!validJsonOfField(7, "email_note", pJson["email_note"], err, false))
+            return false;
+    }
+    if(pJson.isMember("source"))
+    {
+        if(!validJsonOfField(8, "source", pJson["source"], err, false))
+            return false;
+    }
+    if(pJson.isMember("is_starred"))
+    {
+        if(!validJsonOfField(9, "is_starred", pJson["is_starred"], err, false))
+            return false;
+    }
+    if(pJson.isMember("is_blocked"))
+    {
+        if(!validJsonOfField(10, "is_blocked", pJson["is_blocked"], err, false))
             return false;
     }
     if(pJson.isMember("status"))
     {
-        if(!validJsonOfField(6, "status", pJson["status"], err, false))
+        if(!validJsonOfField(11, "status", pJson["status"], err, false))
             return false;
     }
     if(pJson.isMember("created_at"))
     {
-        if(!validJsonOfField(7, "created_at", pJson["created_at"], err, false))
+        if(!validJsonOfField(12, "created_at", pJson["created_at"], err, false))
             return false;
     }
     if(pJson.isMember("updated_at"))
     {
-        if(!validJsonOfField(8, "updated_at", pJson["updated_at"], err, false))
+        if(!validJsonOfField(13, "updated_at", pJson["updated_at"], err, false))
             return false;
     }
     return true;
@@ -1593,7 +2298,7 @@ bool Friend::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                               const std::vector<std::string> &pMasqueradingVector,
                                               std::string &err)
 {
-    if(pMasqueradingVector.size() != 9)
+    if(pMasqueradingVector.size() != 14)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1647,6 +2352,31 @@ bool Friend::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
       {
           if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+      {
+          if(!validJsonOfField(9, pMasqueradingVector[9], pJson[pMasqueradingVector[9]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[10].empty() && pJson.isMember(pMasqueradingVector[10]))
+      {
+          if(!validJsonOfField(10, pMasqueradingVector[10], pJson[pMasqueradingVector[10]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[11].empty() && pJson.isMember(pMasqueradingVector[11]))
+      {
+          if(!validJsonOfField(11, pMasqueradingVector[11], pJson[pMasqueradingVector[11]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[12].empty() && pJson.isMember(pMasqueradingVector[12]))
+      {
+          if(!validJsonOfField(12, pMasqueradingVector[12], pJson[pMasqueradingVector[12]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[13].empty() && pJson.isMember(pMasqueradingVector[13]))
+      {
+          if(!validJsonOfField(13, pMasqueradingVector[13], pJson[pMasqueradingVector[13]], err, false))
               return false;
       }
     }
@@ -1735,13 +2465,21 @@ bool Friend::validJsonOfField(size_t index,
                 err="Type error in the "+fieldName+" field";
                 return false;
             }
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 500)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 500)";
+                return false;
+            }
             break;
         case 5:
             if(pJson.isNull())
             {
                 return true;
             }
-            if(!pJson.isInt())
+            if(!pJson.isString())
             {
                 err="Type error in the "+fieldName+" field";
                 return false;
@@ -1752,9 +2490,17 @@ bool Friend::validJsonOfField(size_t index,
             {
                 return true;
             }
-            if(!pJson.isInt())
+            if(!pJson.isString())
             {
                 err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 20)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 20)";
                 return false;
             }
             break;
@@ -1768,8 +2514,79 @@ bool Friend::validJsonOfField(size_t index,
                 err="Type error in the "+fieldName+" field";
                 return false;
             }
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 100)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 100)";
+                return false;
+            }
             break;
         case 8:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            if(pJson.isString() && std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t>{}
+                .from_bytes(pJson.asCString()).size() > 50)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 50)";
+                return false;
+            }
+            break;
+        case 9:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isInt())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 10:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isInt())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 11:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isInt())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 12:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 13:
             if(pJson.isNull())
             {
                 return true;

@@ -22,9 +22,6 @@ int main() {
         LOG_INFO << "JWT secret loaded";
     }
 
-    // 注意：所有从 HttpController、WebSocketController、HttpFilter 派生的类会自动注册，
-    // 因此不需要手动调用 registerController 或 registerFilter。
-
     LOG_INFO << "Server started";
     drogon::app().run();
     return 0;

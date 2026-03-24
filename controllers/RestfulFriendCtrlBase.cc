@@ -427,8 +427,13 @@ RestfulFriendCtrlBase::RestfulFriendCtrlBase()
           "user_id",
           "friend_id",
           "remark",
+          "description",
           "tags",
-          "is_black",
+          "phone_note",
+          "email_note",
+          "source",
+          "is_starred",
+          "is_blocked",
           "status",
           "created_at",
           "updated_at"
@@ -444,8 +449,13 @@ RestfulFriendCtrlBase::RestfulFriendCtrlBase()
         "user_id", // the alias for the user_id column.
         "friend_id", // the alias for the friend_id column.
         "remark", // the alias for the remark column.
+        "description", // the alias for the description column.
         "tags", // the alias for the tags column.
-        "is_black", // the alias for the is_black column.
+        "phone_note", // the alias for the phone_note column.
+        "email_note", // the alias for the email_note column.
+        "source", // the alias for the source column.
+        "is_starred", // the alias for the is_starred column.
+        "is_blocked", // the alias for the is_blocked column.
         "status", // the alias for the status column.
         "created_at", // the alias for the created_at column.
         "updated_at"  // the alias for the updated_at column.

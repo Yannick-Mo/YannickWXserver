@@ -1,6 +1,6 @@
 {
     "rdbms": "mysql",
-    "host": "192.168.166.91",
+    "host": "192.168.146.91",
     "port": 3306,
     "dbname": "yaroserverdb",
     "user": "root",

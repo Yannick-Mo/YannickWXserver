@@ -22,12 +22,12 @@ class RestfulUserCtrl: public drogon::HttpController<RestfulUserCtrl>, public Re
 {
   public:
     METHOD_LIST_BEGIN
-    ADD_METHOD_TO(RestfulUserCtrl::getOne,"/api/v1/user/{1}",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulUserCtrl::updateOne,"/api/v1/user/{1}",Put,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulUserCtrl::deleteOne,"/api/v1/user/{1}",Delete,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulUserCtrl::get,"/api/v1/user",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulUserCtrl::create,"/api/v1/user",Post,Options,"AuthFilter");
-    //ADD_METHOD_TO(RestfulUserCtrl::update,"/api/v1/user",Put,Options,"AuthFilter");
+    ADD_METHOD_TO(RestfulUserCtrl::getOne,"/api/v1/user/{1}",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulUserCtrl::updateOne,"/api/v1/user/{1}",Put,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulUserCtrl::deleteOne,"/api/v1/user/{1}",Delete,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulUserCtrl::get,"/api/v1/user",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulUserCtrl::create,"/api/v1/user",Post,Options,"JwtFilter");
+    //ADD_METHOD_TO(RestfulUserCtrl::update,"/api/v1/user",Put,Options,"JwtFilter");
     METHOD_LIST_END
      
     void getOne(const HttpRequestPtr &req,

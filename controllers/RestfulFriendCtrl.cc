@@ -7,7 +7,11 @@
 
 #include "RestfulFriendCtrl.h"
 #include <string>
-
+#include <drogon/orm/Criteria.h>
+#include <drogon/orm/Mapper.h>
+#include <unordered_map>
+#include <vector>
+#include "User.h" 
 
 void RestfulFriendCtrl::getOne(const HttpRequestPtr &req,
                                std::function<void(const HttpResponsePtr &)> &&callback,
@@ -35,7 +39,102 @@ void RestfulFriendCtrl::deleteOne(const HttpRequestPtr &req,
 void RestfulFriendCtrl::get(const HttpRequestPtr &req,
                             std::function<void(const HttpResponsePtr &)> &&callback)
 {
-    RestfulFriendCtrlBase::get(req, std::move(callback));
+    // 1. 从 JwtFilter 获取当前用户ID
+    auto attributes = req->getAttributes();
+    if (!attributes->find("user_id")) {
+        Json::Value ret;
+        ret["error"] = "Unauthorized";
+        auto resp = HttpResponse::newHttpJsonResponse(ret);
+        resp->setStatusCode(k401Unauthorized);
+        callback(resp);
+        return;
+    }
+    int64_t userId = attributes->get<int64_t>("user_id");
+
+    // 2. 查询好友列表（status=0）
+    auto dbClientPtr = getDbClient();
+    drogon::orm::Mapper<Friend> friendMapper(dbClientPtr);
+    auto criteria = drogon::orm::Criteria(
+        Friend::Cols::_user_id, drogon::orm::CompareOperator::EQ, userId) &&
+        drogon::orm::Criteria(
+            Friend::Cols::_status, drogon::orm::CompareOperator::EQ, 0);
+
+    auto callbackPtr = std::make_shared<std::function<void(const HttpResponsePtr &)>>(std::move(callback));
+
+    friendMapper.findBy(criteria,
+        [req, callbackPtr, this, dbClientPtr](const std::vector<Friend> &friends) {
+            if (friends.empty()) {
+                // 没有好友，直接返回空数组
+                (*callbackPtr)(HttpResponse::newHttpJsonResponse(Json::Value(Json::arrayValue)));
+                return;
+            }
+
+            // 3. 收集所有好友ID
+            std::vector<int64_t> friendIds;
+            friendIds.reserve(friends.size());
+            for (const auto &f : friends) {
+                friendIds.push_back(f.getValueOfFriendId());
+            }
+
+            // 4. 批量查询好友的用户信息（只查询公开字段）
+            drogon::orm::Mapper<User> userMapper(dbClientPtr);
+            auto userCriteria = drogon::orm::Criteria(
+                User::Cols::_id, drogon::orm::CompareOperator::In, friendIds);
+            userMapper.findBy(userCriteria,
+                [req, callbackPtr, friends, this](const std::vector<User> &users) {
+                    // 构建用户ID到User对象的映射
+                    std::unordered_map<int64_t, User> userMap;
+                    for (const auto &u : users) {
+                        userMap[u.getValueOfId()] = u;
+                    }
+
+                    // 5. 构建最终返回的JSON数组
+                    Json::Value result(Json::arrayValue);
+                    for (const auto &f : friends) {
+                        // 将好友关系转为JSON
+                        Json::Value friendJson = makeJson(req, f);
+
+                        // 查找对应的用户信息
+                        auto it = userMap.find(f.getValueOfFriendId());
+                        if (it != userMap.end()) {
+                            const User &user = it->second;
+                            // 构建用户公开信息JSON（只包含需要的字段）
+                            Json::Value userJson;
+                            userJson["user_id"] = (Json::Int64)user.getValueOfId();
+                            userJson["account"] = user.getValueOfUsername();
+                            userJson["nickname"] = user.getValueOfNickname();
+                            userJson["avatar"] = user.getValueOfAvatarUrl();
+                            userJson["region"] = user.getValueOfRegion();
+                            userJson["signature"] = user.getValueOfSignature();
+                            userJson["gender"] = user.getValueOfGender(); 
+                            userJson["profile_cover"] = user.getValueOfCoverUrl();                            
+                            friendJson["user"] = userJson;
+                        } else {
+                            // 如果用户不存在（数据异常），返回空对象
+                            friendJson["user"] = Json::Value(Json::nullValue);
+                        }
+                        result.append(friendJson);
+                    }
+
+                    (*callbackPtr)(HttpResponse::newHttpJsonResponse(result));
+                },
+                [callbackPtr](const DrogonDbException &e) {
+                    LOG_ERROR << "Failed to query users: " << e.base().what();
+                    Json::Value ret;
+                    ret["error"] = "Database error";
+                    auto resp = HttpResponse::newHttpJsonResponse(ret);
+                    resp->setStatusCode(k500InternalServerError);
+                    (*callbackPtr)(resp);
+                });
+        },
+        [callbackPtr](const DrogonDbException &e) {
+            LOG_ERROR << "Failed to query friends: " << e.base().what();
+            Json::Value ret;
+            ret["error"] = "Database error";
+            auto resp = HttpResponse::newHttpJsonResponse(ret);
+            resp->setStatusCode(k500InternalServerError);
+            (*callbackPtr)(resp);
+        });
 }
 
 void RestfulFriendCtrl::create(const HttpRequestPtr &req,

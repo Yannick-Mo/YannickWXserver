@@ -22,26 +22,32 @@ class RestfulFriendCtrl: public drogon::HttpController<RestfulFriendCtrl>, publi
 {
   public:
     METHOD_LIST_BEGIN
-    ADD_METHOD_TO(RestfulFriendCtrl::getOne,"/api/v1/friend/{1}",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulFriendCtrl::updateOne,"/api/v1/friend/{1}",Put,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulFriendCtrl::deleteOne,"/api/v1/friend/{1}",Delete,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulFriendCtrl::get,"/api/v1/friend",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulFriendCtrl::create,"/api/v1/friend",Post,Options,"AuthFilter");
-    //ADD_METHOD_TO(RestfulFriendCtrl::update,"/api/v1/friend",Put,Options,"AuthFilter");
+    ADD_METHOD_TO(RestfulFriendCtrl::getOne,"/api/v1/friend/{1}",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulFriendCtrl::updateOne,"/api/v1/friend/{1}",Put,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulFriendCtrl::deleteOne,"/api/v1/friend/{1}",Delete,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulFriendCtrl::get,"/api/v1/friend",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulFriendCtrl::create,"/api/v1/friend",Post,Options,"JwtFilter");
+    //ADD_METHOD_TO(RestfulFriendCtrl::update,"/api/v1/friend",Put,Options,"JwtFilter");
     METHOD_LIST_END
      
     void getOne(const HttpRequestPtr &req,
                 std::function<void(const HttpResponsePtr &)> &&callback,
                 Friend::PrimaryKeyType &&id);
+
     void updateOne(const HttpRequestPtr &req,
                    std::function<void(const HttpResponsePtr &)> &&callback,
                    Friend::PrimaryKeyType &&id);
+
     void deleteOne(const HttpRequestPtr &req,
                    std::function<void(const HttpResponsePtr &)> &&callback,
                    Friend::PrimaryKeyType &&id);
+
     void get(const HttpRequestPtr &req,
              std::function<void(const HttpResponsePtr &)> &&callback);
+
     void create(const HttpRequestPtr &req,
              std::function<void(const HttpResponsePtr &)> &&callback);
+    
+    
 
 };

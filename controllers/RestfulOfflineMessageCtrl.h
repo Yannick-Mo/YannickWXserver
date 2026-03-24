@@ -22,12 +22,12 @@ class RestfulOfflineMessageCtrl: public drogon::HttpController<RestfulOfflineMes
 {
   public:
     METHOD_LIST_BEGIN
-    ADD_METHOD_TO(RestfulOfflineMessageCtrl::getOne,"/api/v1/offlinemessage/{1}",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulOfflineMessageCtrl::updateOne,"/api/v1/offlinemessage/{1}",Put,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulOfflineMessageCtrl::deleteOne,"/api/v1/offlinemessage/{1}",Delete,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulOfflineMessageCtrl::get,"/api/v1/offlinemessage",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulOfflineMessageCtrl::create,"/api/v1/offlinemessage",Post,Options,"AuthFilter");
-    //ADD_METHOD_TO(RestfulOfflineMessageCtrl::update,"/api/v1/offlinemessage",Put,Options,"AuthFilter");
+    ADD_METHOD_TO(RestfulOfflineMessageCtrl::getOne,"/api/v1/offlinemessage/{1}",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulOfflineMessageCtrl::updateOne,"/api/v1/offlinemessage/{1}",Put,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulOfflineMessageCtrl::deleteOne,"/api/v1/offlinemessage/{1}",Delete,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulOfflineMessageCtrl::get,"/api/v1/offlinemessage",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulOfflineMessageCtrl::create,"/api/v1/offlinemessage",Post,Options,"JwtFilter");
+    //ADD_METHOD_TO(RestfulOfflineMessageCtrl::update,"/api/v1/offlinemessage",Put,Options,"JwtFilter");
     METHOD_LIST_END
      
     void getOne(const HttpRequestPtr &req,

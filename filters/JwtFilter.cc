@@ -35,8 +35,8 @@ void JwtFilter::doFilter(const HttpRequestPtr &req,
             .with_issuer("wechat_server");  
         verifier.verify(decoded);
 
-        auto userId = decoded.get_payload_claim("user_id").as_string();
-        // 使用 getAttributes()->insert() 存储属性
+        std::string userIdStr = decoded.get_payload_claim("user_id").as_string();
+        int64_t userId = std::stoll(userIdStr);
         req->getAttributes()->insert("user_id", userId);
 
         fccb();

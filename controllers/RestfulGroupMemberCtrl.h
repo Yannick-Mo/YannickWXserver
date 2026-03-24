@@ -22,12 +22,12 @@ class RestfulGroupMemberCtrl: public drogon::HttpController<RestfulGroupMemberCt
 {
   public:
     METHOD_LIST_BEGIN
-    ADD_METHOD_TO(RestfulGroupMemberCtrl::getOne,"/api/v1/groupmember/{1}",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulGroupMemberCtrl::updateOne,"/api/v1/groupmember/{1}",Put,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulGroupMemberCtrl::deleteOne,"/api/v1/groupmember/{1}",Delete,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulGroupMemberCtrl::get,"/api/v1/groupmember",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulGroupMemberCtrl::create,"/api/v1/groupmember",Post,Options,"AuthFilter");
-    //ADD_METHOD_TO(RestfulGroupMemberCtrl::update,"/api/v1/groupmember",Put,Options,"AuthFilter");
+    ADD_METHOD_TO(RestfulGroupMemberCtrl::getOne,"/api/v1/groupmember/{1}",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulGroupMemberCtrl::updateOne,"/api/v1/groupmember/{1}",Put,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulGroupMemberCtrl::deleteOne,"/api/v1/groupmember/{1}",Delete,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulGroupMemberCtrl::get,"/api/v1/groupmember",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulGroupMemberCtrl::create,"/api/v1/groupmember",Post,Options,"JwtFilter");
+    //ADD_METHOD_TO(RestfulGroupMemberCtrl::update,"/api/v1/groupmember",Put,Options,"JwtFilter");
     METHOD_LIST_END
      
     void getOne(const HttpRequestPtr &req,

@@ -1,5 +1,7 @@
 #pragma once
 #include <drogon/WebSocketController.h>
+#include <unordered_map>
+#include <mutex>
 
 class ChatWebSocket : public drogon::WebSocketController<ChatWebSocket> {
 public:
@@ -13,7 +15,18 @@ public:
     virtual void handleConnectionClosed(const drogon::WebSocketConnectionPtr &wsConnPtr) override;
 
     WS_PATH_LIST_BEGIN
-        // WS_PATH_ADD 的第二个参数是 HTTP 方法，第三个及以后是过滤器名称
         WS_PATH_ADD("/chat", drogon::Get, "JwtFilter");
     WS_PATH_LIST_END
+
+private:
+    // 用户ID -> 连接映射
+    static std::unordered_map<int64_t, drogon::WebSocketConnectionPtr> userConnections_;
+    static std::mutex connectionsMutex_;
+
+    // 辅助函数
+    int64_t getUserId(const drogon::WebSocketConnectionPtr &conn) const;
+    void storeOfflineMessage(const Json::Value &msgJson, int64_t fromUserId, int64_t toUserId, int chatType, int64_t targetId);
+    void sendToUser(int64_t userId, const std::string &message);
+    void processSingleChat(const drogon::WebSocketConnectionPtr &wsConnPtr, const Json::Value &msgJson, int64_t fromUserId);
+    void processGroupChat(const drogon::WebSocketConnectionPtr &wsConnPtr, const Json::Value &msgJson, int64_t fromUserId);
 };

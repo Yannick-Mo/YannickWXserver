@@ -22,12 +22,12 @@ class RestfulMomentCommentCtrl: public drogon::HttpController<RestfulMomentComme
 {
   public:
     METHOD_LIST_BEGIN
-    ADD_METHOD_TO(RestfulMomentCommentCtrl::getOne,"/api/v1/momentcomment/{1}",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulMomentCommentCtrl::updateOne,"/api/v1/momentcomment/{1}",Put,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulMomentCommentCtrl::deleteOne,"/api/v1/momentcomment/{1}",Delete,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulMomentCommentCtrl::get,"/api/v1/momentcomment",Get,Options,"AuthFilter");
-    ADD_METHOD_TO(RestfulMomentCommentCtrl::create,"/api/v1/momentcomment",Post,Options,"AuthFilter");
-    //ADD_METHOD_TO(RestfulMomentCommentCtrl::update,"/api/v1/momentcomment",Put,Options,"AuthFilter");
+    ADD_METHOD_TO(RestfulMomentCommentCtrl::getOne,"/api/v1/momentcomment/{1}",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulMomentCommentCtrl::updateOne,"/api/v1/momentcomment/{1}",Put,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulMomentCommentCtrl::deleteOne,"/api/v1/momentcomment/{1}",Delete,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulMomentCommentCtrl::get,"/api/v1/momentcomment",Get,Options,"JwtFilter");
+    ADD_METHOD_TO(RestfulMomentCommentCtrl::create,"/api/v1/momentcomment",Post,Options,"JwtFilter");
+    //ADD_METHOD_TO(RestfulMomentCommentCtrl::update,"/api/v1/momentcomment",Put,Options,"JwtFilter");
     METHOD_LIST_END
      
     void getOne(const HttpRequestPtr &req,

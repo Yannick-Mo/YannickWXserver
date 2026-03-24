@@ -30,7 +30,7 @@
         {
             "name": "serverDb",
             "rdbms": "mysql",
-            "host": "192.168.124.91",
+            "host": "192.168.174.91",
             "port": 3306,
             "dbname": "yaroserverdb",
             "user": "root",

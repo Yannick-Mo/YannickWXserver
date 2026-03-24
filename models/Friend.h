@@ -50,8 +50,13 @@ class Friend
         static const std::string _user_id;
         static const std::string _friend_id;
         static const std::string _remark;
+        static const std::string _description;
         static const std::string _tags;
-        static const std::string _is_black;
+        static const std::string _phone_note;
+        static const std::string _email_note;
+        static const std::string _source;
+        static const std::string _is_starred;
+        static const std::string _is_blocked;
         static const std::string _status;
         static const std::string _created_at;
         static const std::string _updated_at;
@@ -140,6 +145,16 @@ class Friend
     void setRemark(std::string &&pRemark) noexcept;
     void setRemarkToNull() noexcept;
 
+    /**  For column description  */
+    ///Get the value of the column description, returns the default value if the column is null
+    const std::string &getValueOfDescription() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getDescription() const noexcept;
+    ///Set the value of the column description
+    void setDescription(const std::string &pDescription) noexcept;
+    void setDescription(std::string &&pDescription) noexcept;
+    void setDescriptionToNull() noexcept;
+
     /**  For column tags  */
     ///Get the value of the column tags, returns the default value if the column is null
     const std::string &getValueOfTags() const noexcept;
@@ -150,14 +165,53 @@ class Friend
     void setTags(std::string &&pTags) noexcept;
     void setTagsToNull() noexcept;
 
-    /**  For column is_black  */
-    ///Get the value of the column is_black, returns the default value if the column is null
-    const int8_t &getValueOfIsBlack() const noexcept;
+    /**  For column phone_note  */
+    ///Get the value of the column phone_note, returns the default value if the column is null
+    const std::string &getValueOfPhoneNote() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<int8_t> &getIsBlack() const noexcept;
-    ///Set the value of the column is_black
-    void setIsBlack(const int8_t &pIsBlack) noexcept;
-    void setIsBlackToNull() noexcept;
+    const std::shared_ptr<std::string> &getPhoneNote() const noexcept;
+    ///Set the value of the column phone_note
+    void setPhoneNote(const std::string &pPhoneNote) noexcept;
+    void setPhoneNote(std::string &&pPhoneNote) noexcept;
+    void setPhoneNoteToNull() noexcept;
+
+    /**  For column email_note  */
+    ///Get the value of the column email_note, returns the default value if the column is null
+    const std::string &getValueOfEmailNote() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getEmailNote() const noexcept;
+    ///Set the value of the column email_note
+    void setEmailNote(const std::string &pEmailNote) noexcept;
+    void setEmailNote(std::string &&pEmailNote) noexcept;
+    void setEmailNoteToNull() noexcept;
+
+    /**  For column source  */
+    ///Get the value of the column source, returns the default value if the column is null
+    const std::string &getValueOfSource() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getSource() const noexcept;
+    ///Set the value of the column source
+    void setSource(const std::string &pSource) noexcept;
+    void setSource(std::string &&pSource) noexcept;
+    void setSourceToNull() noexcept;
+
+    /**  For column is_starred  */
+    ///Get the value of the column is_starred, returns the default value if the column is null
+    const int8_t &getValueOfIsStarred() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<int8_t> &getIsStarred() const noexcept;
+    ///Set the value of the column is_starred
+    void setIsStarred(const int8_t &pIsStarred) noexcept;
+    void setIsStarredToNull() noexcept;
+
+    /**  For column is_blocked  */
+    ///Get the value of the column is_blocked, returns the default value if the column is null
+    const int8_t &getValueOfIsBlocked() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<int8_t> &getIsBlocked() const noexcept;
+    ///Set the value of the column is_blocked
+    void setIsBlocked(const int8_t &pIsBlocked) noexcept;
+    void setIsBlockedToNull() noexcept;
 
     /**  For column status  */
     ///Get the value of the column status, returns the default value if the column is null
@@ -187,7 +241,7 @@ class Friend
     void setUpdatedAtToNull() noexcept;
 
 
-    static size_t getColumnNumber() noexcept {  return 9;  }
+    static size_t getColumnNumber() noexcept {  return 14;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -221,8 +275,13 @@ class Friend
     std::shared_ptr<int64_t> userId_;
     std::shared_ptr<int64_t> friendId_;
     std::shared_ptr<std::string> remark_;
+    std::shared_ptr<std::string> description_;
     std::shared_ptr<std::string> tags_;
-    std::shared_ptr<int8_t> isBlack_;
+    std::shared_ptr<std::string> phoneNote_;
+    std::shared_ptr<std::string> emailNote_;
+    std::shared_ptr<std::string> source_;
+    std::shared_ptr<int8_t> isStarred_;
+    std::shared_ptr<int8_t> isBlocked_;
     std::shared_ptr<int8_t> status_;
     std::shared_ptr<::trantor::Date> createdAt_;
     std::shared_ptr<::trantor::Date> updatedAt_;
@@ -237,7 +296,7 @@ class Friend
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[9]={ false };
+    bool dirtyFlag_[14]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -274,30 +333,56 @@ class Friend
         }
         if(dirtyFlag_[4])
         {
+            sql += "description,";
+            ++parametersCount;
+        }
+        if(dirtyFlag_[5])
+        {
             sql += "tags,";
             ++parametersCount;
         }
-        sql += "is_black,";
+        if(dirtyFlag_[6])
+        {
+            sql += "phone_note,";
+            ++parametersCount;
+        }
+        if(dirtyFlag_[7])
+        {
+            sql += "email_note,";
+            ++parametersCount;
+        }
+        if(dirtyFlag_[8])
+        {
+            sql += "source,";
+            ++parametersCount;
+        }
+        sql += "is_starred,";
         ++parametersCount;
-        if(!dirtyFlag_[5])
+        if(!dirtyFlag_[9])
+        {
+            needSelection=true;
+        }
+        sql += "is_blocked,";
+        ++parametersCount;
+        if(!dirtyFlag_[10])
         {
             needSelection=true;
         }
         sql += "status,";
         ++parametersCount;
-        if(!dirtyFlag_[6])
+        if(!dirtyFlag_[11])
         {
             needSelection=true;
         }
         sql += "created_at,";
         ++parametersCount;
-        if(!dirtyFlag_[7])
+        if(!dirtyFlag_[12])
         {
             needSelection=true;
         }
         sql += "updated_at,";
         ++parametersCount;
-        if(!dirtyFlag_[8])
+        if(!dirtyFlag_[13])
         {
             needSelection=true;
         }
@@ -336,29 +421,58 @@ class Friend
             sql.append("?,");
 
         }
-        else
-        {
-            sql +="default,";
-        }
         if(dirtyFlag_[6])
         {
             sql.append("?,");
 
-        }
-        else
-        {
-            sql +="default,";
         }
         if(dirtyFlag_[7])
         {
             sql.append("?,");
 
         }
+        if(dirtyFlag_[8])
+        {
+            sql.append("?,");
+
+        }
+        if(dirtyFlag_[9])
+        {
+            sql.append("?,");
+
+        }
         else
         {
             sql +="default,";
         }
-        if(dirtyFlag_[8])
+        if(dirtyFlag_[10])
+        {
+            sql.append("?,");
+
+        }
+        else
+        {
+            sql +="default,";
+        }
+        if(dirtyFlag_[11])
+        {
+            sql.append("?,");
+
+        }
+        else
+        {
+            sql +="default,";
+        }
+        if(dirtyFlag_[12])
+        {
+            sql.append("?,");
+
+        }
+        else
+        {
+            sql +="default,";
+        }
+        if(dirtyFlag_[13])
         {
             sql.append("?,");
 

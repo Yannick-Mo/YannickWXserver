@@ -10,8 +10,6 @@ using namespace drogon::orm;
 using namespace api::v1;
 using namespace drogon_model::yaroserverdb;
 
-// JWT 密钥（应从环境变量读取，此处仅示例）
-const std::string JWT_SECRET = "your-256-bit-secret";
 
 void LoginController::login(const HttpRequestPtr &req,
                             std::function<void(const HttpResponsePtr &)> &&callback)
@@ -30,6 +28,18 @@ void LoginController::login(const HttpRequestPtr &req,
     std::string account = (*json)["account"].asString();  // 支持用户名/手机/邮箱
     std::string password = (*json)["password"].asString();
 
+    // 动态获取 JWT 密钥
+    std::string jwtSecret = app().getCustomConfig()["jwt_secret"].asString();
+    if (jwtSecret.empty()) {
+        LOG_ERROR << "JWT secret not configured";
+        Json::Value ret;
+        ret["error"] = "Server configuration error";
+        auto resp = HttpResponse::newHttpJsonResponse(ret);
+        resp->setStatusCode(k500InternalServerError);
+        callback(resp);
+        return;
+    }
+
     auto db = app().getDbClient("serverDb");
 
     Mapper<User> mp(db);
@@ -38,7 +48,7 @@ void LoginController::login(const HttpRequestPtr &req,
                      Criteria(User::Cols::_email, CompareOperator::EQ, account));
 
     mp.findOne(condition,
-        [callback, password, db, req](User user) {
+        [callback, password, db, req, jwtSecret](User user) {
             // 使用 PasswordHelper 验证密码
             if (!PasswordHelper::validatePassword(password, user.getValueOfPasswordHash()))
             {
@@ -55,7 +65,7 @@ void LoginController::login(const HttpRequestPtr &req,
                 .set_issuer("wechat_server")
                 .set_payload_claim("user_id", jwt::claim(std::to_string(user.getValueOfId())))
                 .set_expires_at(std::chrono::system_clock::now() + std::chrono::hours(24))
-                .sign(jwt::algorithm::hs256{JWT_SECRET});
+                .sign(jwt::algorithm::hs256{jwtSecret});
 
             // 更新最后登录时间
             user.setLastLoginTime(trantor::Date::date());
