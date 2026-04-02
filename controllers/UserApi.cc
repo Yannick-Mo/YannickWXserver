@@ -385,3 +385,79 @@ void UserApi::updateProfile(const HttpRequestPtr &req,
             callback(resp);
         });
 }
+
+void UserApi::searchUsers(const HttpRequestPtr &req,
+                          std::function<void(const HttpResponsePtr &)> &&callback) {
+    auto keyword = req->getParameter("keyword");
+    if (keyword.empty()) {
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k400BadRequest);
+        resp->setBody("Missing keyword");
+        callback(resp);
+        return;
+    }
+
+    auto dbClient = app().getDbClient("serverDb");
+    if (!dbClient) {
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k500InternalServerError);
+        resp->setBody("Database connection error");
+        callback(resp);
+        return;
+    }
+
+    Mapper<User> mapper(dbClient);
+
+    // 构造关键词匹配条件（账号、手机号、昵称）
+    std::string likePattern = "%" + keyword + "%";
+    Criteria nameCond(User::Cols::_username, CompareOperator::Like, likePattern);
+    Criteria phoneCond(User::Cols::_phone, CompareOperator::Like, likePattern);
+    Criteria nicknameCond(User::Cols::_nickname, CompareOperator::Like, likePattern);
+    
+    // 组合 OR 条件
+    Criteria cond = nameCond || phoneCond || nicknameCond;
+
+    // 分页参数
+    int page = 1, size = 20;
+    try {
+        if (req->getParameter("page") != "") page = std::stoi(req->getParameter("page"));
+        if (req->getParameter("size") != "") size = std::stoi(req->getParameter("size"));
+        // 可选：限制最大分页大小
+        if (size > 100) size = 100;
+    } catch (...) {}
+
+    mapper.orderBy(User::Cols::_id, SortOrder::ASC)
+         .limit(size)
+         .offset((page - 1) * size)
+         .findBy(cond,
+            [callback](const std::vector<User> &users) {
+                Json::Value result(Json::arrayValue);
+                for (const auto &user : users) {
+                    Json::Value item;
+                    item["user_id"] = user.getValueOfId();
+                    item["account"] = user.getValueOfUsername();
+                    item["nickname"] = user.getValueOfNickname();
+                    item["avatar"] = user.getValueOfAvatarUrl();
+                    item["region"] = user.getValueOfRegion();
+                    // 可根据需要返回其他字段，但避免返回敏感信息如密码哈希
+                    result.append(item);
+                }
+                auto resp = HttpResponse::newHttpJsonResponse(result);
+                callback(resp);
+            },
+            [callback](const DrogonDbException &e) {
+                LOG_ERROR << "searchUsers: database error: " << e.base().what();
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody("Database error");
+                callback(resp);
+            });
+}
+
+
+
+
+
+
+
+
