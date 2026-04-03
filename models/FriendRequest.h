@@ -49,6 +49,7 @@ class FriendRequest
         static const std::string _from_user_id;
         static const std::string _to_user_id;
         static const std::string _message;
+        static const std::string _applicant_meta;
         static const std::string _status;
         static const std::string _created_at;
         static const std::string _updated_at;
@@ -137,6 +138,16 @@ class FriendRequest
     void setMessage(std::string &&pMessage) noexcept;
     void setMessageToNull() noexcept;
 
+    /**  For column applicant_meta  */
+    ///Get the value of the column applicant_meta, returns the default value if the column is null
+    const std::string &getValueOfApplicantMeta() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getApplicantMeta() const noexcept;
+    ///Set the value of the column applicant_meta
+    void setApplicantMeta(const std::string &pApplicantMeta) noexcept;
+    void setApplicantMeta(std::string &&pApplicantMeta) noexcept;
+    void setApplicantMetaToNull() noexcept;
+
     /**  For column status  */
     ///Get the value of the column status, returns the default value if the column is null
     const int8_t &getValueOfStatus() const noexcept;
@@ -165,7 +176,7 @@ class FriendRequest
     void setUpdatedAtToNull() noexcept;
 
 
-    static size_t getColumnNumber() noexcept {  return 7;  }
+    static size_t getColumnNumber() noexcept {  return 8;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -195,6 +206,7 @@ class FriendRequest
     std::shared_ptr<int64_t> fromUserId_;
     std::shared_ptr<int64_t> toUserId_;
     std::shared_ptr<std::string> message_;
+    std::shared_ptr<std::string> applicantMeta_;
     std::shared_ptr<int8_t> status_;
     std::shared_ptr<::trantor::Date> createdAt_;
     std::shared_ptr<::trantor::Date> updatedAt_;
@@ -209,7 +221,7 @@ class FriendRequest
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[7]={ false };
+    bool dirtyFlag_[8]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -244,21 +256,26 @@ class FriendRequest
             sql += "message,";
             ++parametersCount;
         }
-        sql += "status,";
-        ++parametersCount;
-        if(!dirtyFlag_[4])
+        if(dirtyFlag_[4])
         {
-            needSelection=true;
+            sql += "applicant_meta,";
+            ++parametersCount;
         }
-        sql += "created_at,";
+        sql += "status,";
         ++parametersCount;
         if(!dirtyFlag_[5])
         {
             needSelection=true;
         }
-        sql += "updated_at,";
+        sql += "created_at,";
         ++parametersCount;
         if(!dirtyFlag_[6])
+        {
+            needSelection=true;
+        }
+        sql += "updated_at,";
+        ++parametersCount;
+        if(!dirtyFlag_[7])
         {
             needSelection=true;
         }
@@ -292,10 +309,6 @@ class FriendRequest
             sql.append("?,");
 
         }
-        else
-        {
-            sql +="default,";
-        }
         if(dirtyFlag_[5])
         {
             sql.append("?,");
@@ -306,6 +319,15 @@ class FriendRequest
             sql +="default,";
         }
         if(dirtyFlag_[6])
+        {
+            sql.append("?,");
+
+        }
+        else
+        {
+            sql +="default,";
+        }
+        if(dirtyFlag_[7])
         {
             sql.append("?,");
 

@@ -80,6 +80,22 @@ void ChatWebSocket::handleNewMessage(const WebSocketConnectionPtr &wsConnPtr,
     }
 }
 
+bool ChatWebSocket::sendToUser(int64_t userId, const std::string &message) {
+    WebSocketConnectionPtr conn;
+    {
+        std::lock_guard<std::mutex> lock(connectionsMutex_);
+        auto it = userConnections_.find(userId);
+        if (it != userConnections_.end() && it->second->connected()) {
+            conn = it->second;
+        }
+    }
+    if (conn) {
+        conn->send(message);
+        return true;
+    }
+    return false;
+}
+
 void ChatWebSocket::processSingleChat(const WebSocketConnectionPtr &wsConnPtr,
                                       const Json::Value &msgJson,
                                       int64_t fromUserId) {

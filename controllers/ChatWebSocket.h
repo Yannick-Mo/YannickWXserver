@@ -14,6 +14,9 @@ public:
 
     virtual void handleConnectionClosed(const drogon::WebSocketConnectionPtr &wsConnPtr) override;
 
+    static bool sendToUser(int64_t userId, const std::string &message);
+
+
     WS_PATH_LIST_BEGIN
         WS_PATH_ADD("/chat", drogon::Get, "JwtFilter");
     WS_PATH_LIST_END
@@ -26,7 +29,6 @@ private:
     // 辅助函数
     int64_t getUserId(const drogon::WebSocketConnectionPtr &conn) const;
     void storeOfflineMessage(const Json::Value &msgJson, int64_t fromUserId, int64_t toUserId, int chatType, int64_t targetId);
-    void sendToUser(int64_t userId, const std::string &message);
     void processSingleChat(const drogon::WebSocketConnectionPtr &wsConnPtr, const Json::Value &msgJson, int64_t fromUserId);
     void processGroupChat(const drogon::WebSocketConnectionPtr &wsConnPtr, const Json::Value &msgJson, int64_t fromUserId);
 };

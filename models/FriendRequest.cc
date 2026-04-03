@@ -18,6 +18,7 @@ const std::string FriendRequest::Cols::_id = "id";
 const std::string FriendRequest::Cols::_from_user_id = "from_user_id";
 const std::string FriendRequest::Cols::_to_user_id = "to_user_id";
 const std::string FriendRequest::Cols::_message = "message";
+const std::string FriendRequest::Cols::_applicant_meta = "applicant_meta";
 const std::string FriendRequest::Cols::_status = "status";
 const std::string FriendRequest::Cols::_created_at = "created_at";
 const std::string FriendRequest::Cols::_updated_at = "updated_at";
@@ -30,6 +31,7 @@ const std::vector<typename FriendRequest::MetaData> FriendRequest::metaData_={
 {"from_user_id","int64_t","bigint",8,0,0,1},
 {"to_user_id","int64_t","bigint",8,0,0,1},
 {"message","std::string","varchar(255)",255,0,0,0},
+{"applicant_meta","std::string","json",0,0,0,0},
 {"status","int8_t","tinyint",1,0,0,0},
 {"created_at","::trantor::Date","datetime",0,0,0,0},
 {"updated_at","::trantor::Date","datetime",0,0,0,0}
@@ -58,6 +60,10 @@ FriendRequest::FriendRequest(const Row &r, const ssize_t indexOffset) noexcept
         if(!r["message"].isNull())
         {
             message_=std::make_shared<std::string>(r["message"].as<std::string>());
+        }
+        if(!r["applicant_meta"].isNull())
+        {
+            applicantMeta_=std::make_shared<std::string>(r["applicant_meta"].as<std::string>());
         }
         if(!r["status"].isNull())
         {
@@ -111,7 +117,7 @@ FriendRequest::FriendRequest(const Row &r, const ssize_t indexOffset) noexcept
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 7 > r.size())
+        if(offset + 8 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -140,9 +146,14 @@ FriendRequest::FriendRequest(const Row &r, const ssize_t indexOffset) noexcept
         index = offset + 4;
         if(!r[index].isNull())
         {
-            status_=std::make_shared<int8_t>(r[index].as<int8_t>());
+            applicantMeta_=std::make_shared<std::string>(r[index].as<std::string>());
         }
         index = offset + 5;
+        if(!r[index].isNull())
+        {
+            status_=std::make_shared<int8_t>(r[index].as<int8_t>());
+        }
+        index = offset + 6;
         if(!r[index].isNull())
         {
             auto timeStr = r[index].as<std::string>();
@@ -165,7 +176,7 @@ FriendRequest::FriendRequest(const Row &r, const ssize_t indexOffset) noexcept
                 createdAt_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
-        index = offset + 6;
+        index = offset + 7;
         if(!r[index].isNull())
         {
             auto timeStr = r[index].as<std::string>();
@@ -194,7 +205,7 @@ FriendRequest::FriendRequest(const Row &r, const ssize_t indexOffset) noexcept
 
 FriendRequest::FriendRequest(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 8)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -236,7 +247,7 @@ FriendRequest::FriendRequest(const Json::Value &pJson, const std::vector<std::st
         dirtyFlag_[4] = true;
         if(!pJson[pMasqueradingVector[4]].isNull())
         {
-            status_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[4]].asInt64());
+            applicantMeta_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
         }
     }
     if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
@@ -244,7 +255,15 @@ FriendRequest::FriendRequest(const Json::Value &pJson, const std::vector<std::st
         dirtyFlag_[5] = true;
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
-            auto timeStr = pJson[pMasqueradingVector[5]].asString();
+            status_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[5]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
+    {
+        dirtyFlag_[6] = true;
+        if(!pJson[pMasqueradingVector[6]].isNull())
+        {
+            auto timeStr = pJson[pMasqueradingVector[6]].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -265,12 +284,12 @@ FriendRequest::FriendRequest(const Json::Value &pJson, const std::vector<std::st
             }
         }
     }
-    if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
     {
-        dirtyFlag_[6] = true;
-        if(!pJson[pMasqueradingVector[6]].isNull())
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
         {
-            auto timeStr = pJson[pMasqueradingVector[6]].asString();
+            auto timeStr = pJson[pMasqueradingVector[7]].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -327,9 +346,17 @@ FriendRequest::FriendRequest(const Json::Value &pJson) noexcept(false)
             message_=std::make_shared<std::string>(pJson["message"].asString());
         }
     }
-    if(pJson.isMember("status"))
+    if(pJson.isMember("applicant_meta"))
     {
         dirtyFlag_[4]=true;
+        if(!pJson["applicant_meta"].isNull())
+        {
+            applicantMeta_=std::make_shared<std::string>(pJson["applicant_meta"].asString());
+        }
+    }
+    if(pJson.isMember("status"))
+    {
+        dirtyFlag_[5]=true;
         if(!pJson["status"].isNull())
         {
             status_=std::make_shared<int8_t>((int8_t)pJson["status"].asInt64());
@@ -337,7 +364,7 @@ FriendRequest::FriendRequest(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("created_at"))
     {
-        dirtyFlag_[5]=true;
+        dirtyFlag_[6]=true;
         if(!pJson["created_at"].isNull())
         {
             auto timeStr = pJson["created_at"].asString();
@@ -363,7 +390,7 @@ FriendRequest::FriendRequest(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("updated_at"))
     {
-        dirtyFlag_[6]=true;
+        dirtyFlag_[7]=true;
         if(!pJson["updated_at"].isNull())
         {
             auto timeStr = pJson["updated_at"].asString();
@@ -392,7 +419,7 @@ FriendRequest::FriendRequest(const Json::Value &pJson) noexcept(false)
 void FriendRequest::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 8)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -433,7 +460,7 @@ void FriendRequest::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[4] = true;
         if(!pJson[pMasqueradingVector[4]].isNull())
         {
-            status_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[4]].asInt64());
+            applicantMeta_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
         }
     }
     if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
@@ -441,7 +468,15 @@ void FriendRequest::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[5] = true;
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
-            auto timeStr = pJson[pMasqueradingVector[5]].asString();
+            status_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[5]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
+    {
+        dirtyFlag_[6] = true;
+        if(!pJson[pMasqueradingVector[6]].isNull())
+        {
+            auto timeStr = pJson[pMasqueradingVector[6]].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -462,12 +497,12 @@ void FriendRequest::updateByMasqueradedJson(const Json::Value &pJson,
             }
         }
     }
-    if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
     {
-        dirtyFlag_[6] = true;
-        if(!pJson[pMasqueradingVector[6]].isNull())
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
         {
-            auto timeStr = pJson[pMasqueradingVector[6]].asString();
+            auto timeStr = pJson[pMasqueradingVector[7]].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -523,9 +558,17 @@ void FriendRequest::updateByJson(const Json::Value &pJson) noexcept(false)
             message_=std::make_shared<std::string>(pJson["message"].asString());
         }
     }
-    if(pJson.isMember("status"))
+    if(pJson.isMember("applicant_meta"))
     {
         dirtyFlag_[4] = true;
+        if(!pJson["applicant_meta"].isNull())
+        {
+            applicantMeta_=std::make_shared<std::string>(pJson["applicant_meta"].asString());
+        }
+    }
+    if(pJson.isMember("status"))
+    {
+        dirtyFlag_[5] = true;
         if(!pJson["status"].isNull())
         {
             status_=std::make_shared<int8_t>((int8_t)pJson["status"].asInt64());
@@ -533,7 +576,7 @@ void FriendRequest::updateByJson(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("created_at"))
     {
-        dirtyFlag_[5] = true;
+        dirtyFlag_[6] = true;
         if(!pJson["created_at"].isNull())
         {
             auto timeStr = pJson["created_at"].asString();
@@ -559,7 +602,7 @@ void FriendRequest::updateByJson(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("updated_at"))
     {
-        dirtyFlag_[6] = true;
+        dirtyFlag_[7] = true;
         if(!pJson["updated_at"].isNull())
         {
             auto timeStr = pJson["updated_at"].asString();
@@ -668,6 +711,33 @@ void FriendRequest::setMessageToNull() noexcept
     dirtyFlag_[3] = true;
 }
 
+const std::string &FriendRequest::getValueOfApplicantMeta() const noexcept
+{
+    static const std::string defaultValue = std::string();
+    if(applicantMeta_)
+        return *applicantMeta_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &FriendRequest::getApplicantMeta() const noexcept
+{
+    return applicantMeta_;
+}
+void FriendRequest::setApplicantMeta(const std::string &pApplicantMeta) noexcept
+{
+    applicantMeta_ = std::make_shared<std::string>(pApplicantMeta);
+    dirtyFlag_[4] = true;
+}
+void FriendRequest::setApplicantMeta(std::string &&pApplicantMeta) noexcept
+{
+    applicantMeta_ = std::make_shared<std::string>(std::move(pApplicantMeta));
+    dirtyFlag_[4] = true;
+}
+void FriendRequest::setApplicantMetaToNull() noexcept
+{
+    applicantMeta_.reset();
+    dirtyFlag_[4] = true;
+}
+
 const int8_t &FriendRequest::getValueOfStatus() const noexcept
 {
     static const int8_t defaultValue = int8_t();
@@ -682,12 +752,12 @@ const std::shared_ptr<int8_t> &FriendRequest::getStatus() const noexcept
 void FriendRequest::setStatus(const int8_t &pStatus) noexcept
 {
     status_ = std::make_shared<int8_t>(pStatus);
-    dirtyFlag_[4] = true;
+    dirtyFlag_[5] = true;
 }
 void FriendRequest::setStatusToNull() noexcept
 {
     status_.reset();
-    dirtyFlag_[4] = true;
+    dirtyFlag_[5] = true;
 }
 
 const ::trantor::Date &FriendRequest::getValueOfCreatedAt() const noexcept
@@ -704,12 +774,12 @@ const std::shared_ptr<::trantor::Date> &FriendRequest::getCreatedAt() const noex
 void FriendRequest::setCreatedAt(const ::trantor::Date &pCreatedAt) noexcept
 {
     createdAt_ = std::make_shared<::trantor::Date>(pCreatedAt);
-    dirtyFlag_[5] = true;
+    dirtyFlag_[6] = true;
 }
 void FriendRequest::setCreatedAtToNull() noexcept
 {
     createdAt_.reset();
-    dirtyFlag_[5] = true;
+    dirtyFlag_[6] = true;
 }
 
 const ::trantor::Date &FriendRequest::getValueOfUpdatedAt() const noexcept
@@ -726,12 +796,12 @@ const std::shared_ptr<::trantor::Date> &FriendRequest::getUpdatedAt() const noex
 void FriendRequest::setUpdatedAt(const ::trantor::Date &pUpdatedAt) noexcept
 {
     updatedAt_ = std::make_shared<::trantor::Date>(pUpdatedAt);
-    dirtyFlag_[6] = true;
+    dirtyFlag_[7] = true;
 }
 void FriendRequest::setUpdatedAtToNull() noexcept
 {
     updatedAt_.reset();
-    dirtyFlag_[6] = true;
+    dirtyFlag_[7] = true;
 }
 
 void FriendRequest::updateId(const uint64_t id)
@@ -745,6 +815,7 @@ const std::vector<std::string> &FriendRequest::insertColumns() noexcept
         "from_user_id",
         "to_user_id",
         "message",
+        "applicant_meta",
         "status",
         "created_at",
         "updated_at"
@@ -789,6 +860,17 @@ void FriendRequest::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[4])
     {
+        if(getApplicantMeta())
+        {
+            binder << getValueOfApplicantMeta();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[5])
+    {
         if(getStatus())
         {
             binder << getValueOfStatus();
@@ -798,7 +880,7 @@ void FriendRequest::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[5])
+    if(dirtyFlag_[6])
     {
         if(getCreatedAt())
         {
@@ -809,7 +891,7 @@ void FriendRequest::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[6])
+    if(dirtyFlag_[7])
     {
         if(getUpdatedAt())
         {
@@ -848,6 +930,10 @@ const std::vector<std::string> FriendRequest::updateColumns() const
     if(dirtyFlag_[6])
     {
         ret.push_back(getColumnName(6));
+    }
+    if(dirtyFlag_[7])
+    {
+        ret.push_back(getColumnName(7));
     }
     return ret;
 }
@@ -889,6 +975,17 @@ void FriendRequest::updateArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[4])
     {
+        if(getApplicantMeta())
+        {
+            binder << getValueOfApplicantMeta();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[5])
+    {
         if(getStatus())
         {
             binder << getValueOfStatus();
@@ -898,7 +995,7 @@ void FriendRequest::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[5])
+    if(dirtyFlag_[6])
     {
         if(getCreatedAt())
         {
@@ -909,7 +1006,7 @@ void FriendRequest::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[6])
+    if(dirtyFlag_[7])
     {
         if(getUpdatedAt())
         {
@@ -956,6 +1053,14 @@ Json::Value FriendRequest::toJson() const
     {
         ret["message"]=Json::Value();
     }
+    if(getApplicantMeta())
+    {
+        ret["applicant_meta"]=getValueOfApplicantMeta();
+    }
+    else
+    {
+        ret["applicant_meta"]=Json::Value();
+    }
     if(getStatus())
     {
         ret["status"]=getValueOfStatus();
@@ -992,7 +1097,7 @@ Json::Value FriendRequest::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 7)
+    if(pMasqueradingVector.size() == 8)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -1040,9 +1145,9 @@ Json::Value FriendRequest::toMasqueradedJson(
         }
         if(!pMasqueradingVector[4].empty())
         {
-            if(getStatus())
+            if(getApplicantMeta())
             {
-                ret[pMasqueradingVector[4]]=getValueOfStatus();
+                ret[pMasqueradingVector[4]]=getValueOfApplicantMeta();
             }
             else
             {
@@ -1051,9 +1156,9 @@ Json::Value FriendRequest::toMasqueradedJson(
         }
         if(!pMasqueradingVector[5].empty())
         {
-            if(getCreatedAt())
+            if(getStatus())
             {
-                ret[pMasqueradingVector[5]]=getCreatedAt()->toDbStringLocal();
+                ret[pMasqueradingVector[5]]=getValueOfStatus();
             }
             else
             {
@@ -1062,13 +1167,24 @@ Json::Value FriendRequest::toMasqueradedJson(
         }
         if(!pMasqueradingVector[6].empty())
         {
-            if(getUpdatedAt())
+            if(getCreatedAt())
             {
-                ret[pMasqueradingVector[6]]=getUpdatedAt()->toDbStringLocal();
+                ret[pMasqueradingVector[6]]=getCreatedAt()->toDbStringLocal();
             }
             else
             {
                 ret[pMasqueradingVector[6]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[7].empty())
+        {
+            if(getUpdatedAt())
+            {
+                ret[pMasqueradingVector[7]]=getUpdatedAt()->toDbStringLocal();
+            }
+            else
+            {
+                ret[pMasqueradingVector[7]]=Json::Value();
             }
         }
         return ret;
@@ -1105,6 +1221,14 @@ Json::Value FriendRequest::toMasqueradedJson(
     else
     {
         ret["message"]=Json::Value();
+    }
+    if(getApplicantMeta())
+    {
+        ret["applicant_meta"]=getValueOfApplicantMeta();
+    }
+    else
+    {
+        ret["applicant_meta"]=Json::Value();
     }
     if(getStatus())
     {
@@ -1165,19 +1289,24 @@ bool FriendRequest::validateJsonForCreation(const Json::Value &pJson, std::strin
         if(!validJsonOfField(3, "message", pJson["message"], err, true))
             return false;
     }
+    if(pJson.isMember("applicant_meta"))
+    {
+        if(!validJsonOfField(4, "applicant_meta", pJson["applicant_meta"], err, true))
+            return false;
+    }
     if(pJson.isMember("status"))
     {
-        if(!validJsonOfField(4, "status", pJson["status"], err, true))
+        if(!validJsonOfField(5, "status", pJson["status"], err, true))
             return false;
     }
     if(pJson.isMember("created_at"))
     {
-        if(!validJsonOfField(5, "created_at", pJson["created_at"], err, true))
+        if(!validJsonOfField(6, "created_at", pJson["created_at"], err, true))
             return false;
     }
     if(pJson.isMember("updated_at"))
     {
-        if(!validJsonOfField(6, "updated_at", pJson["updated_at"], err, true))
+        if(!validJsonOfField(7, "updated_at", pJson["updated_at"], err, true))
             return false;
     }
     return true;
@@ -1186,7 +1315,7 @@ bool FriendRequest::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                        const std::vector<std::string> &pMasqueradingVector,
                                                        std::string &err)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 8)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1258,6 +1387,14 @@ bool FriendRequest::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                   return false;
           }
       }
+      if(!pMasqueradingVector[7].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[7]))
+          {
+              if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, true))
+                  return false;
+          }
+      }
     }
     catch(const Json::LogicError &e)
     {
@@ -1293,19 +1430,24 @@ bool FriendRequest::validateJsonForUpdate(const Json::Value &pJson, std::string 
         if(!validJsonOfField(3, "message", pJson["message"], err, false))
             return false;
     }
+    if(pJson.isMember("applicant_meta"))
+    {
+        if(!validJsonOfField(4, "applicant_meta", pJson["applicant_meta"], err, false))
+            return false;
+    }
     if(pJson.isMember("status"))
     {
-        if(!validJsonOfField(4, "status", pJson["status"], err, false))
+        if(!validJsonOfField(5, "status", pJson["status"], err, false))
             return false;
     }
     if(pJson.isMember("created_at"))
     {
-        if(!validJsonOfField(5, "created_at", pJson["created_at"], err, false))
+        if(!validJsonOfField(6, "created_at", pJson["created_at"], err, false))
             return false;
     }
     if(pJson.isMember("updated_at"))
     {
-        if(!validJsonOfField(6, "updated_at", pJson["updated_at"], err, false))
+        if(!validJsonOfField(7, "updated_at", pJson["updated_at"], err, false))
             return false;
     }
     return true;
@@ -1314,7 +1456,7 @@ bool FriendRequest::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                                      const std::vector<std::string> &pMasqueradingVector,
                                                      std::string &err)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 8)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1358,6 +1500,11 @@ bool FriendRequest::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
       {
           if(!validJsonOfField(6, pMasqueradingVector[6], pJson[pMasqueradingVector[6]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+      {
+          if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, false))
               return false;
       }
     }
@@ -1441,7 +1588,7 @@ bool FriendRequest::validJsonOfField(size_t index,
             {
                 return true;
             }
-            if(!pJson.isInt())
+            if(!pJson.isString())
             {
                 err="Type error in the "+fieldName+" field";
                 return false;
@@ -1452,13 +1599,24 @@ bool FriendRequest::validJsonOfField(size_t index,
             {
                 return true;
             }
-            if(!pJson.isString())
+            if(!pJson.isInt())
             {
                 err="Type error in the "+fieldName+" field";
                 return false;
             }
             break;
         case 6:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 7:
             if(pJson.isNull())
             {
                 return true;
