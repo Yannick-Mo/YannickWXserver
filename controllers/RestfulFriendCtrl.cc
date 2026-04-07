@@ -142,3 +142,229 @@ void RestfulFriendCtrl::create(const HttpRequestPtr &req,
 {
     RestfulFriendCtrlBase::create(req, std::move(callback));
 }
+
+void RestfulFriendCtrl::getOneByFriendId(const HttpRequestPtr &req,
+                                         std::function<void(const HttpResponsePtr &)> &&callback,
+                                         int64_t friendId)
+{
+    // 获取当前用户ID
+    auto attributes = req->getAttributes();
+    if (!attributes->find("user_id")) {
+        Json::Value ret;
+        ret["error"] = "Unauthorized";
+        auto resp = HttpResponse::newHttpJsonResponse(ret);
+        resp->setStatusCode(k401Unauthorized);
+        callback(resp);
+        return;
+    }
+    int64_t userId = attributes->get<int64_t>("user_id");
+
+    auto dbClient = getDbClient();
+    if (!dbClient) {
+        Json::Value ret;
+        ret["error"] = "Database connection error";
+        auto resp = HttpResponse::newHttpJsonResponse(ret);
+        resp->setStatusCode(k500InternalServerError);
+        callback(resp);
+        return;
+    }
+
+    Mapper<Friend> friendMapper(dbClient);
+    // 构造查询条件：当前用户的好友关系中，friend_id 为指定值
+    auto criteria = drogon::orm::Criteria(Friend::Cols::_user_id, drogon::orm::CompareOperator::EQ, userId) &&
+                    drogon::orm::Criteria(Friend::Cols::_friend_id, drogon::orm::CompareOperator::EQ, friendId);
+    friendMapper.findOne(criteria,
+        [this, req, callback, dbClient, friendId](const Friend &f) {
+            // 查询好友的用户信息（使用 findBy 以处理用户不存在的情况）
+            Mapper<User> userMapper(dbClient);
+            auto userCriteria = drogon::orm::Criteria(User::Cols::_id, drogon::orm::CompareOperator::EQ, friendId);
+            userMapper.findBy(userCriteria,
+                [this, req, callback, f](const std::vector<User> &users) {
+                    Json::Value ret = this->makeJson(req, f);
+                    if (!users.empty()) {
+                        const User &user = users[0];
+                        Json::Value userJson;
+                        userJson["user_id"] = (Json::Int64)user.getValueOfId();
+                        userJson["account"] = user.getValueOfUsername();
+                        userJson["nickname"] = user.getValueOfNickname();
+                        userJson["avatar"] = user.getValueOfAvatarUrl();
+                        userJson["profile_cover"] = user.getValueOfCoverUrl();
+                        userJson["gender"] = user.getValueOfGender();
+                        userJson["region"] = user.getValueOfRegion();
+                        userJson["signature"] = user.getValueOfSignature();
+                        ret["user"] = userJson;
+                    } else {
+                        // 用户不存在时返回 null
+                        ret["user"] = Json::Value(Json::nullValue);
+                    }
+                    auto resp = HttpResponse::newHttpJsonResponse(ret);
+                    callback(resp);
+                },
+                [callback](const DrogonDbException &e) {
+                    LOG_ERROR << "User query error: " << e.base().what();
+                    Json::Value ret;
+                    ret["error"] = "Database error";
+                    auto resp = HttpResponse::newHttpJsonResponse(ret);
+                    resp->setStatusCode(k500InternalServerError);
+                    callback(resp);
+                });
+        },
+        [callback](const DrogonDbException &e) {
+            // 好友关系不存在时返回 404
+            LOG_ERROR << "Friend not found: " << e.base().what();
+            Json::Value ret;
+            ret["error"] = "Friend not found";
+            auto resp = HttpResponse::newHttpJsonResponse(ret);
+            resp->setStatusCode(k404NotFound);
+            callback(resp);
+        });
+}
+
+void RestfulFriendCtrl::updateOneByFriendId(const HttpRequestPtr &req,
+                                            std::function<void(const HttpResponsePtr &)> &&callback,
+                                            int64_t friendId)
+{
+    auto attributes = req->getAttributes();
+    if (!attributes->find("user_id")) {
+        Json::Value ret;
+        ret["error"] = "Unauthorized";
+        auto resp = HttpResponse::newHttpJsonResponse(ret);
+        resp->setStatusCode(k401Unauthorized);
+        callback(resp);
+        return;
+    }
+    int64_t userId = attributes->get<int64_t>("user_id");
+
+    auto jsonPtr = req->jsonObject();
+    if (!jsonPtr) {
+        Json::Value ret;
+        ret["error"] = "No JSON object in request";
+        auto resp = HttpResponse::newHttpJsonResponse(ret);
+        resp->setStatusCode(k400BadRequest);
+        callback(resp);
+        return;
+    }
+
+    auto dbClient = getDbClient();
+    if (!dbClient) {
+        Json::Value ret;
+        ret["error"] = "Database connection error";
+        auto resp = HttpResponse::newHttpJsonResponse(ret);
+        resp->setStatusCode(k500InternalServerError);
+        callback(resp);
+        return;
+    }
+
+    Mapper<Friend> mapper(dbClient);
+    auto criteria = drogon::orm::Criteria(Friend::Cols::_user_id, drogon::orm::CompareOperator::EQ, userId) &&
+                    drogon::orm::Criteria(Friend::Cols::_friend_id, drogon::orm::CompareOperator::EQ, friendId);
+    mapper.findOne(criteria,
+        [this, jsonPtr, callback, mapper](Friend record) mutable {
+            // 过滤不允许客户端修改的字段
+            Json::Value allowed = *jsonPtr;
+            allowed.removeMember("id");
+            allowed.removeMember("user_id");
+            allowed.removeMember("friend_id");
+            allowed.removeMember("created_at");
+            allowed.removeMember("updated_at");
+            allowed.removeMember("status");
+
+            record.updateByJson(allowed);
+
+            // 执行更新
+            mapper.update(record,
+                [callback](size_t count) {
+                    if (count == 1) {
+                        Json::Value ret;
+                        ret["success"] = true;
+                        auto resp = HttpResponse::newHttpJsonResponse(ret);
+                        resp->setStatusCode(k200OK);
+                        callback(resp);
+                    } else {
+                        Json::Value ret;
+                        ret["error"] = "Update failed";
+                        auto resp = HttpResponse::newHttpJsonResponse(ret);
+                        resp->setStatusCode(k500InternalServerError);
+                        callback(resp);
+                    }
+                },
+                [callback](const DrogonDbException &e) {
+                    LOG_ERROR << e.base().what();
+                    Json::Value ret;
+                    ret["error"] = "Database error during update";
+                    auto resp = HttpResponse::newHttpJsonResponse(ret);
+                    resp->setStatusCode(k500InternalServerError);
+                    callback(resp);
+                });
+        },
+        [callback](const DrogonDbException &e) {
+            LOG_ERROR << "Friend not found: " << e.base().what();
+            Json::Value ret;
+            ret["error"] = "Friend not found";
+            auto resp = HttpResponse::newHttpJsonResponse(ret);
+            resp->setStatusCode(k404NotFound);
+            callback(resp);
+        });
+}
+
+
+void RestfulFriendCtrl::deleteOneByFriendId(const HttpRequestPtr &req,
+                                            std::function<void(const HttpResponsePtr &)> &&callback,
+                                            int64_t friendId)
+{
+    auto attributes = req->getAttributes();
+    if (!attributes->find("user_id")) {
+        Json::Value ret;
+        ret["error"] = "Unauthorized";
+        auto resp = HttpResponse::newHttpJsonResponse(ret);
+        resp->setStatusCode(k401Unauthorized);
+        callback(resp);
+        return;
+    }
+    int64_t userId = attributes->get<int64_t>("user_id");
+
+    auto dbClient = getDbClient();
+    if (!dbClient) {
+        Json::Value ret;
+        ret["error"] = "Database connection error";
+        auto resp = HttpResponse::newHttpJsonResponse(ret);
+        resp->setStatusCode(k500InternalServerError);
+        callback(resp);
+        return;
+    }
+
+    Mapper<Friend> mapper(dbClient);
+    auto criteria = drogon::orm::Criteria(Friend::Cols::_user_id, drogon::orm::CompareOperator::EQ, userId) &&
+                    drogon::orm::Criteria(Friend::Cols::_friend_id, drogon::orm::CompareOperator::EQ, friendId);
+    mapper.deleteBy(criteria,
+        [callback](size_t count) {
+            if (count > 0) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k204NoContent);
+                callback(resp);
+            } else {
+                Json::Value ret;
+                ret["error"] = "Friend not found";
+                auto resp = HttpResponse::newHttpJsonResponse(ret);
+                resp->setStatusCode(k404NotFound);
+                callback(resp);
+            }
+        },
+        [callback](const DrogonDbException &e) {
+            LOG_ERROR << e.base().what();
+            Json::Value ret;
+            ret["error"] = "Database error";
+            auto resp = HttpResponse::newHttpJsonResponse(ret);
+            resp->setStatusCode(k500InternalServerError);
+            callback(resp);
+        });
+}
+
+
+
+
+
+
+
+
+

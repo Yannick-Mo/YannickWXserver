@@ -23,7 +23,7 @@ enum class FriendStatus : int8_t {
     NORMAL = 0
 };
 
-// 响应工具（无任何删减，完整保留）
+// 响应工具
 namespace ResponseUtils {
     static HttpResponsePtr makeErrorResp(HttpStatusCode code, const std::string &msg) {
         Json::Value ret;
@@ -39,7 +39,7 @@ namespace ResponseUtils {
     }
 }
 
-// 静态工具函数（完整保留）
+// 静态工具函数
 static bool isAlreadyFriend(int64_t userId, int64_t friendId) {
     try {
         auto db = app().getDbClient("serverDb");
@@ -66,7 +66,26 @@ static bool hasPendingRequest(int64_t fromUid, int64_t toUid) {
     }
 }
 
-// 1. 发送好友申请（仅删除冗余 code:0，功能完整）
+static void setFriendFieldsFromMeta(Friend& friendObj, const Json::Value& meta) {
+    if (meta.isMember("remark") && meta["remark"].isString())
+        friendObj.setRemark(meta["remark"].asString());
+    if (meta.isMember("description") && meta["description"].isString())
+        friendObj.setDescription(meta["description"].asString());
+    if (meta.isMember("phone_note") && meta["phone_note"].isString())
+        friendObj.setPhoneNote(meta["phone_note"].asString());
+    if (meta.isMember("email_note") && meta["email_note"].isString())
+        friendObj.setEmailNote(meta["email_note"].asString());
+    if (meta.isMember("source") && meta["source"].isString())
+        friendObj.setSource(meta["source"].asString());
+    if (meta.isMember("is_starred") && meta["is_starred"].isInt())
+        friendObj.setIsStarred(static_cast<int8_t>(meta["is_starred"].asInt()));
+    if (meta.isMember("is_blocked") && meta["is_blocked"].isInt())
+        friendObj.setIsBlocked(static_cast<int8_t>(meta["is_blocked"].asInt()));
+    if (meta.isMember("tags") && (meta["tags"].isObject() || meta["tags"].isArray()))
+        friendObj.setTags(ResponseUtils::toCompactJson(meta["tags"]));
+}
+
+// 1. 发送好友申请
 void FriendRequestCtrl::sendRequest(const HttpRequestPtr &req,
                                     std::function<void(const HttpResponsePtr &)> &&callback) {
     auto json = req->getJsonObject();
@@ -83,10 +102,11 @@ void FriendRequestCtrl::sendRequest(const HttpRequestPtr &req,
         return;
     }
 
-    if (!json->isMember("to_user_id") || !(*json)["to_user_id"].isInt64()) {
-        callback(ResponseUtils::makeErrorResp(k400BadRequest, "Missing to_user_id"));
+    if (!json->isMember("to_user_id") || !(*json)["to_user_id"].isNumeric()) {
+        callback(ResponseUtils::makeErrorResp(k400BadRequest, "Missing or invalid to_user_id"));
         return;
     }
+    
     int64_t toUid = (*json)["to_user_id"].asInt64();
     if (toUid <= 0 || fromUid == toUid) {
         callback(ResponseUtils::makeErrorResp(k400BadRequest, "Cannot add yourself"));
@@ -128,7 +148,6 @@ void FriendRequestCtrl::sendRequest(const HttpRequestPtr &req,
         notification["data"]["message"] = newReq.getValueOfMessage();
         ChatWebSocket::sendToUser(toUid, ResponseUtils::toCompactJson(notification));
 
-        // ===================== 仅删除这一行：ret["code"] = 0; =====================
         Json::Value ret;
         ret["message"] = "Request sent";
         ret["request_id"] = newReq.getValueOfId();
@@ -139,7 +158,8 @@ void FriendRequestCtrl::sendRequest(const HttpRequestPtr &req,
     }
 }
 
-// 2. 获取待处理申请（完整无删减！所有组装逻辑全部还原）
+// 2. 获取待处理申请
+// 2. 获取所有好友申请（包含待处理、已同意、已拒绝）
 void FriendRequestCtrl::getPendingRequests(const HttpRequestPtr &req,
                                            std::function<void(const HttpResponsePtr &)> &&callback) {
     int64_t userId;
@@ -154,16 +174,17 @@ void FriendRequestCtrl::getPendingRequests(const HttpRequestPtr &req,
         auto db = app().getDbClient("serverDb");
         Mapper<FriendRequest> reqMapper(db);
         
-        auto cond = Criteria(FriendRequest::Cols::_to_user_id, CompareOperator::EQ, userId) &&
-                    Criteria(FriendRequest::Cols::_status, CompareOperator::EQ, static_cast<int8_t>(RequestStatus::PENDING));
-        
+        // 只查询 我作为接收方 的所有申请，不限制 status（0=待处理 1=同意 2=拒绝）
+        auto cond = Criteria(FriendRequest::Cols::_to_user_id, CompareOperator::EQ, userId);
+
+        // 按时间倒序返回全部
         auto requests = reqMapper.orderBy(FriendRequest::Cols::_created_at, SortOrder::DESC).findBy(cond);
         if (requests.empty()) {
             callback(HttpResponse::newHttpJsonResponse(Json::arrayValue));
             return;
         }
 
-        // 查询申请人信息（完整保留）
+        // 查询申请人信息
         std::vector<int64_t> fromUids;
         for (const auto &r : requests) fromUids.push_back(r.getValueOfFromUserId());
 
@@ -172,14 +193,15 @@ void FriendRequestCtrl::getPendingRequests(const HttpRequestPtr &req,
         std::unordered_map<int64_t, User> userMap;
         for (const auto &u : users) userMap[u.getValueOfId()] = u;
 
-        // 组装返回数据（完整保留）
+        // 组装返回数据
         Json::Value result(Json::arrayValue);
         for (const auto &r : requests) {
             Json::Value item;
             item["id"] = (Json::Int64)r.getValueOfId();
             item["from_user_id"] = (Json::Int64)r.getValueOfFromUserId();
             item["message"] = r.getValueOfMessage();
-            item["status"] = r.getValueOfStatus();
+            item["status"] = r.getValueOfStatus(); // 0 1 2 都会返回
+            
             if(r.getCreatedAt()){
                 item["created_at"] = r.getCreatedAt()->toDbStringLocal();
             }
@@ -199,7 +221,7 @@ void FriendRequestCtrl::getPendingRequests(const HttpRequestPtr &req,
     }
 }
 
-// 3. 处理好友申请（仅删除冗余 code:0，功能完整）
+// 3. 处理好友申请
 void FriendRequestCtrl::processRequest(const HttpRequestPtr &req,
                                        std::function<void(const HttpResponsePtr &)> &&callback,
                                        int64_t requestId) {
@@ -242,63 +264,46 @@ void FriendRequestCtrl::processRequest(const HttpRequestPtr &req,
         request.setStatus(newStatus);
         reqMapper.update(request);
 
-        // 同意申请，解析附加数据（完整保留）
+        // 同意申请，解析附加数据
         if (newStatus == static_cast<int8_t>(RequestStatus::ACCEPTED)) {
-            Json::Value meta;
+            // 1. 解析申请人预设的 meta（写入 f1，即申请人视角）
+            Json::Value applicantMeta;
             const std::string& metaStr = request.getValueOfApplicantMeta();
             if (!metaStr.empty()) {
                 Json::Reader reader;
-                reader.parse(metaStr, meta);
+                reader.parse(metaStr, applicantMeta);
             }
 
             Mapper<Friend> friendMapper(trans);
             Friend f1, f2;
+
+            // f1: 申请人看被申请人的记录
             f1.setUserId(request.getValueOfFromUserId());
             f1.setFriendId(request.getValueOfToUserId());
             f1.setStatus(static_cast<int8_t>(FriendStatus::NORMAL));
-            
-            // 附加数据赋值（完整保留）
-            if (meta.isMember("remark") && meta["remark"].isString()) {
-                f1.setRemark(meta["remark"].asString());
-            }
-            if (meta.isMember("description") && meta["description"].isString()) {
-                f1.setDescription(meta["description"].asString());
-            }
-            if (meta.isMember("phone_note") && meta["phone_note"].isString()) {
-                f1.setPhoneNote(meta["phone_note"].asString());
-            }
-            if (meta.isMember("email_note") && meta["email_note"].isString()) {
-                f1.setEmailNote(meta["email_note"].asString());
-            }
-            if (meta.isMember("source") && meta["source"].isString()) {
-                f1.setSource(meta["source"].asString());
-            }
-            if (meta.isMember("is_starred") && meta["is_starred"].isInt()) {
-                f1.setIsStarred(static_cast<int8_t>(meta["is_starred"].asInt()));
-            }
-            if (meta.isMember("is_blocked") && meta["is_blocked"].isInt()) {
-                f1.setIsBlocked(static_cast<int8_t>(meta["is_blocked"].asInt()));
-            }
-            if (meta.isMember("tags") && (meta["tags"].isObject() || meta["tags"].isArray())) {
-                f1.setTags(ResponseUtils::toCompactJson(meta["tags"]));
+            setFriendFieldsFromMeta(f1, applicantMeta);
+
+            // 2. 解析被申请人本次提交的 meta（写入 f2，即被申请人视角）
+            Json::Value responderMeta;
+            if (json->isMember("meta") && (*json)["meta"].isObject()) {
+                responderMeta = (*json)["meta"];
             }
 
-            // 双向好友插入（完整保留）
             f2.setUserId(request.getValueOfToUserId());
             f2.setFriendId(request.getValueOfFromUserId());
             f2.setStatus(static_cast<int8_t>(FriendStatus::NORMAL));
+            setFriendFieldsFromMeta(f2, responderMeta);
 
             friendMapper.insert(f1);
             friendMapper.insert(f2);
         }
 
-        // WebSocket推送（完整保留）
+        // WebSocket 推送
         Json::Value notify;
         notify["type"] = newStatus == 1 ? "friend_request_accepted" : "friend_request_rejected";
         notify["data"]["request_id"] = requestId;
         ChatWebSocket::sendToUser(request.getValueOfFromUserId(), ResponseUtils::toCompactJson(notify));
 
-        // ===================== 仅删除这一行：ret["code"] = 0; =====================
         Json::Value ret;
         ret["message"] = "Request processed";
         callback(HttpResponse::newHttpJsonResponse(ret));
@@ -307,3 +312,15 @@ void FriendRequestCtrl::processRequest(const HttpRequestPtr &req,
         callback(ResponseUtils::makeErrorResp(k500InternalServerError, "Database error"));
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+

@@ -408,14 +408,12 @@ void UserApi::searchUsers(const HttpRequestPtr &req,
 
     Mapper<User> mapper(dbClient);
 
-    // 构造关键词匹配条件（账号、手机号、昵称）
-    std::string likePattern = "%" + keyword + "%";
-    Criteria nameCond(User::Cols::_username, CompareOperator::Like, likePattern);
-    Criteria phoneCond(User::Cols::_phone, CompareOperator::Like, likePattern);
-    Criteria nicknameCond(User::Cols::_nickname, CompareOperator::Like, likePattern);
+    // 精准搜索：仅匹配 用户名(账号)、手机号
+    Criteria nameCond(User::Cols::_username, CompareOperator::EQ, keyword);
+    Criteria phoneCond(User::Cols::_phone, CompareOperator::EQ, keyword);
     
-    // 组合 OR 条件
-    Criteria cond = nameCond || phoneCond || nicknameCond;
+    // 组合 OR 条件：仅用户名 或 手机号 精准匹配
+    Criteria cond = nameCond || phoneCond;
 
     // 分页参数
     int page = 1, size = 20;
@@ -453,8 +451,6 @@ void UserApi::searchUsers(const HttpRequestPtr &req,
                 callback(resp);
             });
 }
-
-
 
 
 
