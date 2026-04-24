@@ -158,7 +158,6 @@ void FriendRequestCtrl::sendRequest(const HttpRequestPtr &req,
     }
 }
 
-// 2. 获取待处理申请
 // 2. 获取所有好友申请（包含待处理、已同意、已拒绝）
 void FriendRequestCtrl::getPendingRequests(const HttpRequestPtr &req,
                                            std::function<void(const HttpResponsePtr &)> &&callback) {
