@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(YaroServer CXX)
+project(YannickWXserver CXX)
 
 include(CheckIncludeFileCXX)
 
