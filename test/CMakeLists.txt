@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(YaroServer_test CXX)
+project(YannickWXserver_test CXX)
 
 add_executable(${PROJECT_NAME} test_main.cc)
 
