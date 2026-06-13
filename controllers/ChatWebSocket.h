@@ -1,7 +1,9 @@
 #pragma once
 #include <drogon/WebSocketController.h>
 #include <unordered_map>
-#include <mutex>
+#include <array>
+#include <shared_mutex>
+#include <atomic>
 
 class ChatWebSocket : public drogon::WebSocketController<ChatWebSocket> {
 public:
@@ -21,15 +23,25 @@ public:
     WS_PATH_LIST_END
 
 private:
-    static std::unordered_map<int64_t, drogon::WebSocketConnectionPtr> userConnections_;
-    static std::mutex connectionsMutex_;
+    static constexpr size_t SHARD_COUNT = 64;
+
+    struct Shard {
+        std::unordered_map<int64_t, drogon::WebSocketConnectionPtr> connections;
+        std::shared_mutex mtx;
+    };
+    static std::array<Shard, SHARD_COUNT> shards_;
+    static std::atomic<int64_t> onlineCount_;
+
+    static Shard& getShard(int64_t userId);
 
     int64_t getUserId(const drogon::WebSocketConnectionPtr &conn) const;
+    void closeOldConnection(const drogon::WebSocketConnectionPtr &oldConn);
     void storeOfflineMessage(const Json::Value &msgJson,
                              int64_t fromUserId,
                              int64_t toUserId,
                              int chatType,
-                             int64_t targetId);
+                             int64_t targetId,
+                             bool isBackup = false);
     void processSingleChat(const drogon::WebSocketConnectionPtr &wsConnPtr,
                            const Json::Value &msgJson,
                            int64_t fromUserId,

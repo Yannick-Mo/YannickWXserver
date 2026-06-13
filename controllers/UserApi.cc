@@ -52,7 +52,7 @@ void UserApi::getProfile(const HttpRequestPtr &req,
         userId,
         [callback](const User &user) {
             Json::Value ret;
-            ret["user_id"] = user.getValueOfId();
+            ret["user_id"] = (Json::Int64)user.getValueOfId();
             ret["account"] = user.getValueOfUsername();
             ret["nickname"] = user.getValueOfNickname();
             ret["avatar"] = user.getValueOfAvatarUrl();
@@ -146,13 +146,13 @@ void UserApi::getAllGroupMembers(const HttpRequestPtr &req,
                                 Json::Value result(Json::arrayValue);
                                 for (const auto &group : groups) {
                                     Json::Value groupObj;
-                                    groupObj["group_id"] = group.getValueOfId();
+                                    groupObj["group_id"] = (Json::Int64)group.getValueOfId();
                                     groupObj["group_name"] = group.getValueOfGroupName();
                                     groupObj["avatar"] = group.getValueOfAvatarUrl();
                                     groupObj["announcement"] = group.getValueOfAnnouncement();
                                     groupObj["introduction"] = group.getValueOfIntroduction();
                                     groupObj["max_members"] = group.getValueOfMaxMembers();
-                                    groupObj["owner_id"] = group.getValueOfOwnerId();
+                                    groupObj["owner_id"] = (Json::Int64)group.getValueOfOwnerId();
                                     groupObj["status"] = group.getValueOfStatus();
                                     groupObj["members"] = Json::Value(Json::arrayValue);
                                     result.append(groupObj);
@@ -179,7 +179,7 @@ void UserApi::getAllGroupMembers(const HttpRequestPtr &req,
                                         Json::Value memberObj;
                                         // ===== 修改点：群内昵称 =====
                                         memberObj["nickname"] = member.getValueOfNickname(); // 群内昵称
-                                        memberObj["user_id"] = member.getValueOfUserId();
+                                        memberObj["user_id"] = (Json::Int64)member.getValueOfUserId();
                                         memberObj["role"] = member.getValueOfRole();
                                         memberObj["join_time"] = member.getJoinTime() ? member.getJoinTime()->toDbStringLocal() : "";
                                         memberObj["status"] = member.getValueOfStatus();
@@ -202,13 +202,13 @@ void UserApi::getAllGroupMembers(const HttpRequestPtr &req,
                                     for (const auto &group : groups) {
                                         int64_t gid = group.getValueOfId();
                                         Json::Value groupObj;
-                                        groupObj["group_id"] = gid;
+                                        groupObj["group_id"] = (Json::Int64)gid;
                                         groupObj["group_name"] = group.getValueOfGroupName();
                                         groupObj["avatar"] = group.getValueOfAvatarUrl();
                                         groupObj["announcement"] = group.getValueOfAnnouncement();
                                         groupObj["introduction"] = group.getValueOfIntroduction();
                                         groupObj["max_members"] = group.getValueOfMaxMembers();
-                                        groupObj["owner_id"] = group.getValueOfOwnerId();
+                                        groupObj["owner_id"] = (Json::Int64)group.getValueOfOwnerId();
                                         groupObj["status"] = group.getValueOfStatus();
 
                                         auto it = groupMembersMap.find(gid);
@@ -361,7 +361,7 @@ void UserApi::updateProfile(const HttpRequestPtr &req,
                         ret["status"] = "error";
                         ret["message"] = "No rows updated";
                     }
-                    ret["user_id"] = userId;
+                    ret["user_id"] = (Json::Int64)userId;
                     callback(HttpResponse::newHttpJsonResponse(ret));
                 },
                 [callback](const DrogonDbException &e) {
@@ -432,7 +432,7 @@ void UserApi::searchUsers(const HttpRequestPtr &req,
                 Json::Value result(Json::arrayValue);
                 for (const auto &user : users) {
                     Json::Value item;
-                    item["user_id"] = user.getValueOfId();
+                    item["user_id"] = (Json::Int64)user.getValueOfId();
                     item["account"] = user.getValueOfUsername();
                     item["nickname"] = user.getValueOfNickname();
                     item["avatar"] = user.getValueOfAvatarUrl();

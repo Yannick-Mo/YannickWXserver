@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <queue>
 #include <algorithm>
+#include <array>
 #include <cctype>
 
 namespace fs = std::filesystem;
@@ -139,12 +140,7 @@ std::string FileUploadCtrl::sanitizeExtension(const std::string& ext) const {
 }
 
 std::string FileUploadCtrl::generateUniqueFilename(const std::string& ext, const std::string& dir) const {
-    for (int i = 0; i < maxRetries_; ++i) {
-        std::string name = utils::getUuid() + ext;
-        if (!fs::exists(fs::path(dir) / name)) return name;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1 << i));
-    }
-    throw std::runtime_error("Failed to generate unique filename");
+    return utils::getUuid() + ext;
 }
 
 void FileUploadCtrl::saveChunkAsync(const std::string& path, std::shared_ptr<std::vector<char>> data,
@@ -186,7 +182,11 @@ void FileUploadCtrl::mergeChunks(const std::string& fileHash, int totalChunks,
                 app().getLoop()->queueInLoop([callback, success, errorMsg]() { callback(success, errorMsg); });
                 return;
             }
-            out << in.rdbuf();
+            std::array<char, 1048576> buf;
+            while (in) {
+                in.read(buf.data(), buf.size());
+                out.write(buf.data(), in.gcount());
+            }
             in.close();
         }
         out.close();
@@ -343,18 +343,7 @@ void FileUploadCtrl::asyncHandleHttpRequest(const HttpRequestPtr& req,
         std::string originalName = (*json)["filename"].asString();
         std::string ext = fs::path(originalName).extension().string();
         std::string finalName;
-        for (int i = 0; i < maxRetries_; ++i) {
-            finalName = utils::getUuid() + ext;
-            if (!fs::exists(finalDir_ + finalName)) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1 << i));
-        }
-        if (finalName.empty()) {
-            Json::Value resp; resp["error"] = "Failed to generate filename";
-            auto httpResp = HttpResponse::newHttpJsonResponse(resp);
-            httpResp->setStatusCode(k500InternalServerError);
-            callback(httpResp);
-            return;
-        }
+        finalName = utils::getUuid() + ext;
         mergeChunks(fileHash, totalChunks, finalName, [callback, finalName](bool success, const std::string& err) {
             Json::Value resp;
             if (success) {
@@ -417,18 +406,7 @@ void FileUploadCtrl::asyncHandleHttpRequest(const HttpRequestPtr& req,
         }
 
         std::string thumbName;
-        for (int i = 0; i < maxRetries_; ++i) {
-            thumbName = utils::getUuid() + ext;
-            if (!fs::exists(finalDir_ + thumbName)) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1 << i));
-        }
-        if (thumbName.empty()) {
-            Json::Value resp; resp["error"] = "Failed to generate thumbnail name";
-            auto httpResp = HttpResponse::newHttpJsonResponse(resp);
-            httpResp->setStatusCode(k500InternalServerError);
-            callback(httpResp);
-            return;
-        }
+        thumbName = utils::getUuid() + ext;
 
         std::string thumbPath = finalDir_ + thumbName;
         auto data = std::make_shared<std::vector<char>>(

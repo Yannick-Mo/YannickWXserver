@@ -309,7 +309,7 @@ void RestfulUserCtrlBase::get(const HttpRequestPtr &req,
     }
     else
     {
-        mapper.findAll([req, callbackPtr, this](const std::vector<User> &v) {
+        mapper.limit(100).findAll([req, callbackPtr, this](const std::vector<User> &v) {
                 Json::Value ret;
                 ret.resize(0);
                 for (auto &obj : v)
@@ -452,7 +452,7 @@ RestfulUserCtrlBase::RestfulUserCtrlBase()
         "username", // the alias for the username column.
         "phone", // the alias for the phone column.
         "email", // the alias for the email column.
-        "password_hash", // the alias for the password_hash column.
+        "", // the alias for the password_hash column.
         "nickname", // the alias for the nickname column.
         "avatar_url", // the alias for the avatar_url column.
         "cover_url", // the alias for the cover_url column.

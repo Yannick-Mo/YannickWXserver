@@ -1,6 +1,7 @@
 #include <drogon/drogon.h>
 #include <filesystem>
 #include <iostream>
+#include <sys/resource.h>
 
 #include "controllers/RegisterController.h"
 #include "controllers/LoginController.h"
@@ -9,6 +10,8 @@
 #include "controllers/FriendRequestCtrl.h"
 #include "controllers/FileUploadCtrl.h"
 #include "filters/JwtFilter.h"
+#include "utils/AsyncMessageWriter.h"
+#include "utils/RedisCache.h"
 
 namespace fs = std::filesystem;
 
@@ -38,6 +41,23 @@ int main() {
 
     // 加载服务配置
     drogon::app().loadConfigFile("config.json");
+
+    // Apply system resource limits from config (if configured)
+    const auto& custom = drogon::app().getCustomConfig();
+    if (!custom.isNull() && custom.isMember("max_open_files")) {
+        int maxFiles = custom["max_open_files"].asInt();
+        if (maxFiles > 0) {
+            struct rlimit rl;
+            rl.rlim_cur = (rlim_t)maxFiles;
+            rl.rlim_max = (rlim_t)maxFiles;
+            if (setrlimit(RLIMIT_NOFILE, &rl) == 0) {
+                LOG_INFO << "Set max_open_files to " << maxFiles;
+            } else {
+                LOG_WARN << "Failed to set max_open_files=" << maxFiles
+                         << " (errno=" << errno << "), may need CAP_SYS_RESOURCE or higher privilege";
+            }
+        }
+    }
 
     // 初始化最终文件存储目录
     const auto& custom_config = drogon::app().getCustomConfig();
@@ -82,6 +102,24 @@ int main() {
         exit(1);
     }
     LOG_INFO << "JWT secret loaded successfully";
+
+    // 从自定义配置读取 Redis 地址，默认 127.0.0.1:6379
+    auto redisHost = custom_config.get("redis_host", "127.0.0.1").asString();
+    int redisPort = custom_config.get("redis_port", 6379).asInt();
+
+    // 初始化 Redis 缓存
+    RedisCache::instance().init(redisHost, redisPort, 8);
+
+    // 初始化 Redis 消息队列
+    redisContext* msgRedis = redisConnect(redisHost.c_str(), redisPort);
+    if (msgRedis && msgRedis->err == 0) {
+        AsyncMessageWriter::instance().setRedisCtx(msgRedis);
+        AsyncMessageWriter::instance().start();
+        LOG_INFO << "AsyncMessageWriter started (Redis-backed)";
+    } else {
+        LOG_ERROR << "AsyncMessageWriter Redis connect failed: "
+                   << (msgRedis ? msgRedis->errstr : "alloc failed");
+    }
 
     // 启动服务
     LOG_INFO << "Server initialized, starting Drogon...";

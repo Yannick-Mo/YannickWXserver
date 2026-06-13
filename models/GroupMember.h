@@ -11,7 +11,6 @@
 #include <drogon/orm/Field.h>
 #include <drogon/orm/SqlBinder.h>
 #include <drogon/orm/Mapper.h>
-#include <drogon/orm/BaseBuilder.h>
 #ifdef __cpp_impl_coroutine
 #include <drogon/orm/CoroMapper.h>
 #endif
@@ -203,10 +202,6 @@ class GroupMember
                   const drogon::orm::ExceptionCallback &ecb) const;
   private:
     friend drogon::orm::Mapper<GroupMember>;
-    friend drogon::orm::BaseBuilder<GroupMember, true, true>;
-    friend drogon::orm::BaseBuilder<GroupMember, true, false>;
-    friend drogon::orm::BaseBuilder<GroupMember, false, true>;
-    friend drogon::orm::BaseBuilder<GroupMember, false, false>;
 #ifdef __cpp_impl_coroutine
     friend drogon::orm::CoroMapper<GroupMember>;
 #endif

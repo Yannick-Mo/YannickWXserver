@@ -11,7 +11,6 @@
 #include <drogon/orm/Field.h>
 #include <drogon/orm/SqlBinder.h>
 #include <drogon/orm/Mapper.h>
-#include <drogon/orm/BaseBuilder.h>
 #ifdef __cpp_impl_coroutine
 #include <drogon/orm/CoroMapper.h>
 #endif
@@ -190,10 +189,6 @@ class Device
                  const drogon::orm::ExceptionCallback &ecb) const;
   private:
     friend drogon::orm::Mapper<Device>;
-    friend drogon::orm::BaseBuilder<Device, true, true>;
-    friend drogon::orm::BaseBuilder<Device, true, false>;
-    friend drogon::orm::BaseBuilder<Device, false, true>;
-    friend drogon::orm::BaseBuilder<Device, false, false>;
 #ifdef __cpp_impl_coroutine
     friend drogon::orm::CoroMapper<Device>;
 #endif

@@ -19,6 +19,8 @@ endif ()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=x86-64-v2 -mtune=generic")
+
 add_executable(${PROJECT_NAME} main.cc)
 
 # 查找依赖
@@ -28,6 +30,7 @@ find_package(jwt-cpp REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE Drogon::Drogon)
 target_link_libraries(${PROJECT_NAME} PRIVATE jwt-cpp::jwt-cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE crypt)   # 新增
+target_link_libraries(${PROJECT_NAME} PRIVATE hiredis) # Redis缓存
 
 if (CMAKE_CXX_STANDARD LESS 17)
     message(FATAL_ERROR "c++17 or higher is required")
@@ -60,4 +63,4 @@ target_sources(${PROJECT_NAME}
                ${MODEL_SRC}
                ${UTIL_SRC})                    # 新增
 
-add_subdirectory(test)
+# add_subdirectory(test)

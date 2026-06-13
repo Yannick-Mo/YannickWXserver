@@ -11,7 +11,6 @@
 #include <drogon/orm/Field.h>
 #include <drogon/orm/SqlBinder.h>
 #include <drogon/orm/Mapper.h>
-#include <drogon/orm/BaseBuilder.h>
 #ifdef __cpp_impl_coroutine
 #include <drogon/orm/CoroMapper.h>
 #endif
@@ -187,10 +186,6 @@ class MomentComment
                    const drogon::orm::ExceptionCallback &ecb) const;
   private:
     friend drogon::orm::Mapper<MomentComment>;
-    friend drogon::orm::BaseBuilder<MomentComment, true, true>;
-    friend drogon::orm::BaseBuilder<MomentComment, true, false>;
-    friend drogon::orm::BaseBuilder<MomentComment, false, true>;
-    friend drogon::orm::BaseBuilder<MomentComment, false, false>;
 #ifdef __cpp_impl_coroutine
     friend drogon::orm::CoroMapper<MomentComment>;
 #endif

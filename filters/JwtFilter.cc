@@ -8,15 +8,31 @@ void JwtFilter::doFilter(const HttpRequestPtr &req,
                          FilterCallback &&fcb,
                          FilterChainCallback &&fccb) {
     auto auth = req->getHeader("Authorization");
-    if (auth.empty() || auth.substr(0, 7) != "Bearer ") {
+    std::string token;
+    if (!auth.empty() && auth.compare(0, 7, "Bearer ") == 0) {
+        token = auth.substr(7);
+    }
+    if (token.empty()) {
+        std::string qs = req->getQuery();
+        auto pos = qs.find("token=");
+        if (pos != std::string::npos) {
+            token = qs.substr(pos + 6);
+            auto amp = token.find('&');
+            if (amp != std::string::npos) {
+                token.resize(amp);
+            }
+            LOG_WARN << "JwtFilter: token via query param (insecure)";
+        }
+    }
+    LOG_DEBUG << "JwtFilter: token=" << (token.empty() ? "empty" : token.substr(0, 4) + "...")
+              << " path=" << req->path();
+    if (token.empty()) {
         auto resp = HttpResponse::newHttpResponse();
         resp->setStatusCode(k401Unauthorized);
         resp->setBody("Missing or invalid token format");
         fcb(resp);
         return;
     }
-
-    std::string token = auth.substr(7);
     auto &custom = app().getCustomConfig();
     std::string secret = custom.get("jwt_secret", "").asString();
     if (secret.empty()) {

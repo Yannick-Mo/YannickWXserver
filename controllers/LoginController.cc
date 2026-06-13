@@ -2,7 +2,8 @@
 #include <drogon/orm/DbClient.h>
 #include <jwt-cpp/jwt.h>
 #include <models/User.h>
-#include "utils/PasswordHelper.h"   
+#include "utils/PasswordHelper.h"
+#include "utils/RedisCache.h"
 #include <drogon/orm/Criteria.h>
 
 using namespace drogon;
@@ -10,6 +11,7 @@ using namespace drogon::orm;
 using namespace api::v1;
 using namespace drogon_model::yaroserverdb;
 
+static constexpr int CACHE_TTL = 3600;
 
 void LoginController::login(const HttpRequestPtr &req,
                             std::function<void(const HttpResponsePtr &)> &&callback)
@@ -25,13 +27,11 @@ void LoginController::login(const HttpRequestPtr &req,
         return;
     }
 
-    std::string account = (*json)["account"].asString();  // 支持用户名/手机/邮箱
+    std::string account = (*json)["account"].asString();
     std::string password = (*json)["password"].asString();
 
-    // 动态获取 JWT 密钥
     std::string jwtSecret = app().getCustomConfig()["jwt_secret"].asString();
     if (jwtSecret.empty()) {
-        LOG_ERROR << "JWT secret not configured";
         Json::Value ret;
         ret["error"] = "Server configuration error";
         auto resp = HttpResponse::newHttpJsonResponse(ret);
@@ -40,16 +40,17 @@ void LoginController::login(const HttpRequestPtr &req,
         return;
     }
 
+    // === Redis 缓存查询 ===
+    std::string cacheKey = "login:" + account;
+    // === MySQL ===
     auto db = app().getDbClient("serverDb");
-
     Mapper<User> mp(db);
     auto condition = (Criteria(User::Cols::_username, CompareOperator::EQ, account) ||
                      Criteria(User::Cols::_phone, CompareOperator::EQ, account) ||
                      Criteria(User::Cols::_email, CompareOperator::EQ, account));
 
     mp.findOne(condition,
-        [callback, password, db, req, jwtSecret](User user) {
-            // 使用 PasswordHelper 验证密码
+        [callback, password, db, req, jwtSecret, cacheKey](User user) {
             if (!PasswordHelper::validatePassword(password, user.getValueOfPasswordHash()))
             {
                 Json::Value ret;
@@ -60,21 +61,25 @@ void LoginController::login(const HttpRequestPtr &req,
                 return;
             }
 
-            // 生成 JWT
             auto token = jwt::create()
                 .set_issuer("wechat_server")
                 .set_payload_claim("user_id", jwt::claim(std::to_string(user.getValueOfId())))
                 .set_expires_at(std::chrono::system_clock::now() + std::chrono::hours(24))
                 .sign(jwt::algorithm::hs256{jwtSecret});
 
-            // 更新最后登录时间
+            // 写 Redis 缓存
+            std::string cacheVal = std::to_string(user.getValueOfId()) + "|"
+                + user.getValueOfNickname() + "|"
+                + user.getValueOfAvatarUrl();
+            RedisCache::instance().setexAsync(cacheKey, CACHE_TTL, cacheVal);
+
             user.setLastLoginTime(trantor::Date::date());
             user.setLastLoginIp(req->getPeerAddr().toIp());
             Mapper<User>(db).update(user,
                 [token, user, callback](bool) {
                     Json::Value ret;
                     ret["token"] = token;
-                    ret["user_id"] = user.getValueOfId();
+                    ret["user_id"] = (Json::Int64)user.getValueOfId();
                     ret["nickname"] = user.getValueOfNickname();
                     ret["avatar"] = user.getValueOfAvatarUrl();
                     auto resp = HttpResponse::newHttpJsonResponse(ret);
@@ -82,7 +87,6 @@ void LoginController::login(const HttpRequestPtr &req,
                 },
                 [callback, token](const DrogonDbException &e) {
                     LOG_ERROR << "Update login time failed: " << e.base().what();
-                    // 即使更新失败，登录仍然成功，返回 token
                     Json::Value ret;
                     ret["token"] = token;
                     ret["error"] = "Login succeeded but failed to update login info";

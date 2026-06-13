@@ -33,37 +33,39 @@ namespace ResponseUtils {
         return resp;
     }
     static std::string toCompactJson(const Json::Value &val) {
-        Json::FastWriter writer;
+        thread_local Json::FastWriter writer;
         writer.omitEndingLineFeed();
         return writer.write(val);
     }
 }
 
 // 静态工具函数
-static bool isAlreadyFriend(int64_t userId, int64_t friendId) {
-    try {
-        auto db = app().getDbClient("serverDb");
-        Mapper<Friend> mapper(db);
-        auto cond = Criteria(Friend::Cols::_user_id, CompareOperator::EQ, userId) &&
-                    Criteria(Friend::Cols::_friend_id, CompareOperator::EQ, friendId) &&
-                    Criteria(Friend::Cols::_status, CompareOperator::EQ, static_cast<int8_t>(FriendStatus::NORMAL));
-        return !mapper.findBy(cond).empty();
-    } catch (...) {
-        return false;
-    }
+static void isAlreadyFriend(int64_t userId, int64_t friendId,
+                            std::function<void(bool)> callback) {
+    auto db = app().getDbClient("serverDb");
+    Mapper<Friend> mapper(db);
+    auto cond = Criteria(Friend::Cols::_user_id, CompareOperator::EQ, userId) &&
+                Criteria(Friend::Cols::_friend_id, CompareOperator::EQ, friendId) &&
+                Criteria(Friend::Cols::_status, CompareOperator::EQ, static_cast<int8_t>(FriendStatus::NORMAL));
+    mapper.findOne(cond,
+        [callback](Friend) { callback(true); },
+        [callback](const DrogonDbException &) { 
+            callback(false);
+        }
+    );
 }
 
-static bool hasPendingRequest(int64_t fromUid, int64_t toUid) {
-    try {
-        auto db = app().getDbClient("serverDb");
-        Mapper<FriendRequest> mapper(db);
-        auto cond = Criteria(FriendRequest::Cols::_from_user_id, CompareOperator::EQ, fromUid) &&
-                    Criteria(FriendRequest::Cols::_to_user_id, CompareOperator::EQ, toUid) &&
-                    Criteria(FriendRequest::Cols::_status, CompareOperator::EQ, static_cast<int8_t>(RequestStatus::PENDING));
-        return !mapper.findBy(cond).empty();
-    } catch (...) {
-        return false;
-    }
+static void hasPendingRequest(int64_t fromUid, int64_t toUid,
+                              std::function<void(bool)> callback) {
+    auto db = app().getDbClient("serverDb");
+    Mapper<FriendRequest> mapper(db);
+    auto cond = Criteria(FriendRequest::Cols::_from_user_id, CompareOperator::EQ, fromUid) &&
+                Criteria(FriendRequest::Cols::_to_user_id, CompareOperator::EQ, toUid) &&
+                Criteria(FriendRequest::Cols::_status, CompareOperator::EQ, static_cast<int8_t>(RequestStatus::PENDING));
+    mapper.findOne(cond,
+        [callback](FriendRequest) { callback(true); },
+        [callback](const DrogonDbException &) { callback(false); }
+    );
 }
 
 static void setFriendFieldsFromMeta(Friend& friendObj, const Json::Value& meta) {
@@ -106,56 +108,63 @@ void FriendRequestCtrl::sendRequest(const HttpRequestPtr &req,
         callback(ResponseUtils::makeErrorResp(k400BadRequest, "Missing or invalid to_user_id"));
         return;
     }
-    
+
     int64_t toUid = (*json)["to_user_id"].asInt64();
     if (toUid <= 0 || fromUid == toUid) {
         callback(ResponseUtils::makeErrorResp(k400BadRequest, "Cannot add yourself"));
         return;
     }
 
-    if (isAlreadyFriend(fromUid, toUid)) {
-        callback(ResponseUtils::makeErrorResp(k400BadRequest, "Already friends"));
-        return;
-    }
-    if (hasPendingRequest(fromUid, toUid)) {
-        callback(ResponseUtils::makeErrorResp(k400BadRequest, "Friend request already sent"));
-        return;
-    }
+    auto db = app().getDbClient("serverDb");
+    // Atomic check-and-insert: single SQL with NOT EXISTS
+    db->execSqlAsync(
+        "INSERT INTO friend_request (from_user_id, to_user_id, message, status, created_at, updated_at) "
+        "SELECT ?, ?, ?, 0, NOW(), NOW() "
+        "WHERE NOT EXISTS ("
+        "  SELECT 1 FROM friend WHERE user_id = ? AND friend_id = ? AND status = 0"
+        ") AND NOT EXISTS ("
+        "  SELECT 1 FROM friend_request WHERE from_user_id = ? AND to_user_id = ? AND status = 0"
+        ")",
+        [callback, json, fromUid, toUid, db](const drogon::orm::Result &r) {
+            if (r.affectedRows() == 0) {
+                // Check which condition failed
+                auto db2 = app().getDbClient("serverDb");
+                Mapper<Friend> fMapper(db2);
+                auto cond = Criteria(Friend::Cols::_user_id, CompareOperator::EQ, fromUid) &&
+                            Criteria(Friend::Cols::_friend_id, CompareOperator::EQ, toUid) &&
+                            Criteria(Friend::Cols::_status, CompareOperator::EQ, static_cast<int8_t>(FriendStatus::NORMAL));
+                fMapper.findOne(cond,
+                    [callback](Friend) {
+                        callback(ResponseUtils::makeErrorResp(k400BadRequest, "Already friends"));
+                    },
+                    [callback](const DrogonDbException &) {
+                        callback(ResponseUtils::makeErrorResp(k400BadRequest, "Friend request already sent"));
+                    }
+                );
+                return;
+            }
 
-    try {
-        auto db = app().getDbClient("serverDb");
-        Mapper<FriendRequest> mapper(db);
-        
-        FriendRequest newReq;
-        newReq.setFromUserId(fromUid);
-        newReq.setToUserId(toUid);
-        newReq.setMessage((*json).get("message", "").asString());
-        newReq.setStatus(static_cast<int8_t>(RequestStatus::PENDING));
-        
-        Json::Value meta;
-        if (json->isMember("applicant_meta") && (*json)["applicant_meta"].isObject()) {
-            meta = (*json)["applicant_meta"];
-            newReq.setApplicantMeta(ResponseUtils::toCompactJson(meta));
-        }
+            int64_t newId = r.insertId();
+            Json::Value notification;
+            notification["type"] = "friend_request";
+            notification["data"]["request_id"] = (Json::Int64)newId;
+            notification["data"]["from_user_id"] = (Json::Int64)fromUid;
+            notification["data"]["message"] = (*json).get("message", "").asString();
+            ChatWebSocket::sendToUser(toUid, ResponseUtils::toCompactJson(notification));
 
-        mapper.insert(newReq);
-
-        // WebSocket通知（完整保留）
-        Json::Value notification;
-        notification["type"] = "friend_request";
-        notification["data"]["request_id"] = newReq.getValueOfId();
-        notification["data"]["from_user_id"] = (Json::Int64)fromUid;
-        notification["data"]["message"] = newReq.getValueOfMessage();
-        ChatWebSocket::sendToUser(toUid, ResponseUtils::toCompactJson(notification));
-
-        Json::Value ret;
-        ret["message"] = "Request sent";
-        ret["request_id"] = newReq.getValueOfId();
-        callback(HttpResponse::newHttpJsonResponse(ret));
-    } catch (const std::exception &e) {
-        LOG_ERROR << "Send request error: " << e.what();
-        callback(ResponseUtils::makeErrorResp(k500InternalServerError, "Database error"));
-    }
+            Json::Value ret;
+            ret["message"] = "Request sent";
+            ret["request_id"] = (Json::Int64)newId;
+            callback(HttpResponse::newHttpJsonResponse(ret));
+        },
+        [callback](const drogon::orm::DrogonDbException &e) {
+            LOG_ERROR << "Send request error: " << e.base().what();
+            callback(ResponseUtils::makeErrorResp(k500InternalServerError, "Database error"));
+        },
+        fromUid, toUid, (*json).get("message", "").asString(),
+        fromUid, toUid,
+        fromUid, toUid
+    );
 }
 
 // 2. 获取所有好友申请（包含待处理、已同意、已拒绝）
@@ -300,7 +309,7 @@ void FriendRequestCtrl::processRequest(const HttpRequestPtr &req,
         // WebSocket 推送
         Json::Value notify;
         notify["type"] = newStatus == 1 ? "friend_request_accepted" : "friend_request_rejected";
-        notify["data"]["request_id"] = requestId;
+        notify["data"]["request_id"] = (Json::Int64)requestId;
         ChatWebSocket::sendToUser(request.getValueOfFromUserId(), ResponseUtils::toCompactJson(notify));
 
         Json::Value ret;

@@ -1,0 +1,69 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: wx-mysql
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: yaroserverdb
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      wxnet:
+        ipv4_address: 172.20.0.10
+
+  redis:
+    image: redis:7-alpine
+    container_name: wx-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      wxnet:
+        ipv4_address: 172.20.0.20
+
+  server:
+    build: .
+    container_name: wx-server
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
+    networks:
+      wxnet:
+        ipv4_address: 172.20.0.30
+
+volumes:
+  mysql_data:
+  uploads:
+
+networks:
+  wxnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24

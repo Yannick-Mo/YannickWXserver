@@ -11,7 +11,6 @@
 #include <drogon/orm/Field.h>
 #include <drogon/orm/SqlBinder.h>
 #include <drogon/orm/Mapper.h>
-#include <drogon/orm/BaseBuilder.h>
 #ifdef __cpp_impl_coroutine
 #include <drogon/orm/CoroMapper.h>
 #endif
@@ -258,10 +257,6 @@ class Friend
                    const drogon::orm::ExceptionCallback &ecb) const;
   private:
     friend drogon::orm::Mapper<Friend>;
-    friend drogon::orm::BaseBuilder<Friend, true, true>;
-    friend drogon::orm::BaseBuilder<Friend, true, false>;
-    friend drogon::orm::BaseBuilder<Friend, false, true>;
-    friend drogon::orm::BaseBuilder<Friend, false, false>;
 #ifdef __cpp_impl_coroutine
     friend drogon::orm::CoroMapper<Friend>;
 #endif

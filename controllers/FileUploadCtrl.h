@@ -10,10 +10,10 @@ public:
                                         std::function<void(const drogon::HttpResponsePtr&)>&& callback) override;
 
     PATH_LIST_BEGIN
-    PATH_ADD("/api/v1/upload/chunk", drogon::Get);      // 查询分片状态
-    PATH_ADD("/api/v1/upload/chunk", drogon::Post);     // 上传分片
-    PATH_ADD("/api/v1/upload/complete", drogon::Post);  // 合并分片
-    PATH_ADD("/api/v1/upload/thumbnail", drogon::Post); // 上传缩略图
+    PATH_ADD("/api/v1/upload/chunk", drogon::Get, "JwtFilter");
+    PATH_ADD("/api/v1/upload/chunk", drogon::Post, "JwtFilter");
+    PATH_ADD("/api/v1/upload/complete", drogon::Post, "JwtFilter");
+    PATH_ADD("/api/v1/upload/thumbnail", drogon::Post, "JwtFilter");
     PATH_LIST_END
 
 private:
